@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: paladin
+
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/paladin
+    name: ${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    database: postgresql
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/oauth2/callback/{registrationId}"
+            scope:
+              - email
+              - profile
+
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+      table-name: SPRING_SESSION
+    timeout: 3600s
+
+server:
+  servlet:
+    session:
+      cookie:
+        name: SESSIONID
+        http-only: true
+        secure: false # true in production
+        same-site: lax
+        max-age: 3600
+
+aws:
+  s3:
+    bucket-name: paladincvbucket
+    region: us-east-1
+  access-key-id: ${AWS_ACCESS_KEY_ID}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
