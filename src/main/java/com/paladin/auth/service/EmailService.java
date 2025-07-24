@@ -13,7 +13,8 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    public void sendEmail(String to, String subject, String content) {
+    public void sendVerificationEmail(String to, String subject,
+                                String content) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("noreply@paladin.com");
         message.setTo(to);

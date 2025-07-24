@@ -47,22 +47,83 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(
-            @RequestBody @Valid UserRegisterRequestDTO request) {
+            @RequestBody @Valid UserRegisterRequestDTO dto,
+            HttpServletRequest request) {
+
         Map<String, String> response = new HashMap<>();
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            response.put("error", "User already exists!");
-            return ResponseEntity.badRequest().body(response);
+
+        User existingUser =
+                userRepository.findByEmail(dto.getEmail())
+                        .orElse(null);
+
+        if (existingUser != null) {
+            if (existingUser.isEmailVerified()) {
+                log.warn(
+                        "Registration failed: email already registered and verified: {}",
+                        dto.getEmail());
+                return new ResponseEntity<>(createErrorResponse(
+                        "User already exists!"), HttpStatus.BAD_REQUEST);
+            } else {
+                log.info("Attempting to re-register unverified user {}. " +
+                                "Generating new activation code.",
+                        dto.getEmail());
+
+                String newActivationCode = UUID.randomUUID().toString();
+                LocalDateTime newActivationExpiry =
+                        LocalDateTime.now().plusMinutes(10);
+
+                existingUser.setActivationCode(newActivationCode);
+                existingUser.setActivationCodeExpiry(newActivationExpiry);
+                userRepository.save(existingUser);
+
+                String verificationLink =
+                        ServletUriComponentsBuilder.fromCurrentContextPath()
+                                .path("/api/auth/verify-email")
+                                .queryParam("token", newActivationCode)
+                                .toUriString();
+
+                String emailBody = String.format(
+                        """
+                                 Dear %s,
+                                \s
+                                 This is a confirmation email to verify your email address.                                                            \s
+                                 Please click on the following link to \
+                                 verify your email address:
+                                 %s
+                                \s
+                                 This link \
+                                 will expire in 10 minutes.
+                                \s
+                                 Thank you,\
+                                \s
+                                 Paladin Team""",
+                        existingUser.getFirstName(),
+                        verificationLink);
+
+
+                emailService.sendVerificationEmail(existingUser.getEmail(),
+                        existingUser.getFirstName(), emailBody);
+                log.info(
+                        "New verification email sent to unverified user: {}",
+                        existingUser.getEmail());
+                response.put("message",
+                        "User already exists but email not verified. A new verification link has been sent to your email. Please check your inbox.");
+                return new ResponseEntity<>(response, HttpStatus.OK);
+            }
         }
 
+
+        // new user
         User user = new User();
-        user.setEmail(request.getEmail());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEmail(dto.getEmail());
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setAuthProvider(AuthProvider.LOCAL);
         user.setEmailVerified(false);
         user.setActivationCode(UUID.randomUUID().toString());
         user.setActivationCodeExpiry(LocalDateTime.now().plusMinutes(10));
+        user.setCreatedAt(LocalDateTime.now());
 
         userRepository.save(user);
 
@@ -79,11 +140,11 @@ public class AuthController {
                 """
                         Dear %s,
                         
-                        Please click on the following link to \
+                        Please click on the following link to\
                         verify your email address:
                         %s
                         
-                        This link \
+                        This link\
                         will expire in 10 minutes.
                         
                         Thank you,\
@@ -93,10 +154,14 @@ public class AuthController {
                 verificationUrl);
 
         try {
-            emailService.sendEmail(user.getEmail(), emailSubject,
+            emailService.sendVerificationEmail(user.getEmail(),
+                    emailSubject,
                     emailBody);
-            response.put("message", "User registered successfully!");
-            return ResponseEntity.ok(response);
+            log.info("New user registered and verification email sent " +
+                    "to: {}", dto.getEmail());
+            response.put("message", "User registered successfully and " +
+                    "Verification email sent to your mail!");
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             log.error("Error sending verification email to {}: {}",
                     user.getFirstName(), e.getMessage());
@@ -112,35 +177,62 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> verifyEmail(
             @RequestParam("token") String token
     ) {
-        Map<String, String> response = new HashMap<>();
-        User user = userRepository.findByActivationCode(token).orElseThrow(
-                () -> new UserNotFoundException("User not found for " +
-                        "token: " + token + ".")
-        );
-        if (user == null) {
-            response.put("error", "Invalid verification code!");
-            return ResponseEntity.badRequest().body(response);
+        try {
+            log.info("Verifying email for token: {}", token);
+            User user =
+                    userRepository.findByActivationCode(token).orElseThrow(
+                            () -> new UserNotFoundException(
+                                    "User not found for " +
+                                            "token: " + token + ".")
+                    );
+            if (user == null) {
+                log.warn(
+                        "Email verification failed: Invalid or non-existent token provided: {}",
+                        token);
+                return ResponseEntity.badRequest().body(
+                        Map.of("error", "Invalid verification code!"));
+            }
+
+            if (user.isEmailVerified()) {
+                log.info(
+                        "Email verification failed: Email already verified: {}",
+                        user.getEmail());
+                return new ResponseEntity<>(createErrorResponse("Email " +
+                        "already verified!"), HttpStatus.CONFLICT);
+            }
+
+            if (user.getActivationCodeExpiry() == null || user.getActivationCodeExpiry()
+                    .isBefore(LocalDateTime.now())) {
+                log.warn(
+                        "Email verification failed: Verification code has expired: {}",
+                        token);
+                return new ResponseEntity<>(
+                        createErrorResponse("Verification " +
+                                "code has expired! Please try registering again to receive a new link."),
+                        HttpStatus.GONE);
+            }
+            user.setEmailVerified(true);
+            user.setActivationCode(null);
+            user.setActivationCodeExpiry(null);
+            userRepository.save(user);
+            log.info("Email successfully verified for user: {}",
+                    user.getEmail());
+            return ResponseEntity.ok(
+                    Map.of("message", "Email verified successfully!"));
+        } catch (UserNotFoundException e) {
+            log.error("User not found during email verification for " +
+                    "token {}: {}", token, e.getMessage());
+            return new ResponseEntity<>(createErrorResponse("User not " +
+                    "found for this verification code!"),
+                    HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            log.error(
+                    "An unexpected error occurred during email verification for token {}: {}",
+                    token, e.getMessage(), e);
+            return new ResponseEntity<>(createErrorResponse(
+                    "An unexpected error occurred during email verification."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        if (user.getActivationCodeExpiry().isBefore(LocalDateTime.now())) {
-            response.put("error", "Verification code has expired!. " +
-                    "Please register again.");
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        if (user.isEmailVerified()) {
-            response.put("message", "Email already verified!");
-            return ResponseEntity.ok(response);
-        }
-
-        user.setEmailVerified(true);
-        user.setActivationCode(null);
-        user.setActivationCodeExpiry(null);
-        userRepository.save(user);
-
-        response.put("message", "Email verified successfully! You can " +
-                "log in now!");
-        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
@@ -248,43 +340,133 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
-            HttpServletRequest request, HttpServletResponse response) {
-        Authentication auth =
-                SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            try {
-                rememberMeServices.loginFail(request, response);
-                System.out.println("Remember-me cookie cleared");
-            } catch (Exception e) {
-                System.err.println(
-                        "Error clearing remember-me cookie: " + e.getMessage());
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        SecurityContextHolder.clearContext(); // Clear the security context
+        HttpSession session =
+                request.getSession(false); // Get session, don't create new
+        if (session != null) {
+            session.invalidate(); // Invalidate the session
+            log.info("User logged out and session invalidated.");
+        }
+
+        // Clear remember-me cookie if it exists
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("REMEMBER_ME_COOKIE".equals(
+                        cookie.getName())) { // Match your remember-me cookie name
+                    cookie.setMaxAge(0); // Set max age to 0 to delete
+                    cookie.setPath(
+                            "/"); // Important: set the path to match the cookie's path
+                    response.addCookie(cookie);
+                    log.info("Remember-me cookie cleared.");
+                    break;
+                }
             }
         }
+        Map<String, String> responseBody = new HashMap<>();
+        responseBody.put("message", "Logged out successfully");
+        return ResponseEntity.ok(responseBody);
+    }
 
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
+    @PostMapping("/reset-password-request")
+    public ResponseEntity<Map<String, String>> requestPasswordReset(
+            @RequestBody Map<String, String> requestBody) {
+        String email = requestBody.get("email");
+        if (email == null || email.isEmpty()) {
+            return new ResponseEntity<>(createErrorResponse("Email is " +
+                    "required"), HttpStatus.BAD_REQUEST);
         }
 
-        SecurityContextHolder.clearContext();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            log.warn("Password reset request for non-existent email: {}",
+                    email);
+            // Return a generic success message to prevent email enumeration
+            return new ResponseEntity<>(
+                    createSuccessResponse("A password reset link has " +
+                            "been " +
+                            "sent."), HttpStatus.OK);
+        }
 
-        Cookie cookie = new Cookie("SESSIONID", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // true in prod
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        String resetToken = UUID.randomUUID().toString();
+        user.setActivationCode(resetToken);
+        user.setActivationCodeExpiry(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
 
-        Cookie rememberMeCookie = new Cookie("REMEMBER_ME_COOKIE", null);
-        rememberMeCookie.setHttpOnly(true);
-        rememberMeCookie.setSecure(false); // true in prod
-        rememberMeCookie.setPath("/");
-        rememberMeCookie.setMaxAge(0);
-        response.addCookie(rememberMeCookie);
+        String resetLink =
+                ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/auth/reset-password")
+                        .queryParam("token", resetToken)
+                        .toUriString();
 
-        return ResponseEntity.ok(
-                Map.of("message", "Logged out successfully!"));
+        // Create a subject and body for the email
+        String emailSubject = "Paladin - Password Reset Request";
+        String emailBody = String.format(
+                "Dear %s,\n\nPlease use the following link to reset your password: %s",
+                user.getFirstName(), resetLink);
+
+        emailService.sendVerificationEmail(user.getEmail(), emailSubject,
+                emailBody);
+
+        log.info("Password reset link sent to {}", user.getEmail());
+        return new ResponseEntity<>(
+                createSuccessResponse("If an account with" +
+                        " that email exists, a password reset link has been sent."),
+                HttpStatus.OK);
     }
+
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @RequestParam String token,
+            @RequestBody PasswordDto passwordDto) {
+        try {
+            User user =
+                    userRepository.findByActivationCode(token)
+                            .orElse(null);
+
+            if (user == null || user.getActivationCodeExpiry() == null || user.getActivationCodeExpiry()
+                    .isBefore(LocalDateTime.now())) {
+                log.warn(
+                        "Password reset failed: Invalid or expired token {}.",
+                        token);
+                return new ResponseEntity<>(
+                        createErrorResponse("Invalid or " +
+                                "expired password reset link."),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            if (passwordDto.getPassword() == null || passwordDto.getPassword()
+                    .length() < 8) {
+                return new ResponseEntity<>(createErrorResponse(
+                        "Password must be at least 8 characters long."),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            user.setPassword(
+                    passwordEncoder.encode(passwordDto.getPassword()));
+            user.setActivationCode(null);
+            user.setActivationCodeExpiry(null);
+            userRepository.save(user);
+
+            log.info("Password successfully reset for user with token {}.",
+                    token);
+            return new ResponseEntity<>(
+                    createSuccessResponse("Password reset" +
+                            " successfully."), HttpStatus.OK);
+        } catch (Exception e) {
+            log.error(
+                    "An unexpected error occurred during password reset " +
+                            "for token {}: {}", token, e.getMessage(), e);
+            return new ResponseEntity<>(
+                    createErrorResponse("An unexpected " +
+                            "error occurred during password reset."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     @PostMapping("/set-password")
     public ResponseEntity<Map<String, String>> setPassword(
@@ -307,7 +489,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(
+    public ResponseEntity<?> getUserInfo(
             Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -333,34 +515,6 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("user", userResponse));
     }
 
-    @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> getAuthStatus(
-            Principal principal) {
-
-        Map<String, Object> status = new HashMap<>();
-
-        if (principal != null) {
-            status.put("authenticated", true);
-            User user = userRepository.findByEmail(principal.getName())
-                    .orElseThrow(
-                            () -> new UserNotFoundException("User with " +
-                                    "such email address not found")
-                    );
-            if (user != null) {
-                UserResponseDTO userResponse = new UserResponseDTO();
-                userResponse.setId(user.getId());
-                userResponse.setEmail(user.getEmail());
-                userResponse.setFirstName(user.getFirstName());
-                userResponse.setLastName(user.getLastName());
-                status.put("user", userResponse);
-            }
-        } else {
-            status.put("authenticated", false);
-        }
-
-        return ResponseEntity.ok(status);
-    }
-
     private AuthResult getAuthenticatedUser(Principal principal) {
         if (principal == null) {
             return AuthResult.unauthorized();
@@ -383,6 +537,13 @@ public class AuthController {
         Map<String, String> errorResponse = new HashMap<>();
         errorResponse.put("error", message);
         return errorResponse;
+    }
+
+    private static Map<String, String> createSuccessResponse(
+            String message) {
+        Map<String, String> successResponse = new HashMap<>();
+        successResponse.put("message", message);
+        return successResponse;
     }
 
     @Getter

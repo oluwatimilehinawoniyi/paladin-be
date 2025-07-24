@@ -1,6 +1,7 @@
 package com.paladin.user.service;
 
 import com.paladin.enums.AuthProvider;
+import com.paladin.mappers.UserMapper;
 import com.paladin.user.User;
 import com.paladin.user.interfaces.OAuth2UserInfo;
 import com.paladin.user.model.OAuth2UserInfoFactory;
@@ -83,21 +84,24 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user = new User();
         user.setEmail(userInfo.getEmail());
         user.setFirstName(userInfo.getFirstName());
-        user.setLastName(userInfo.getLastName());
+        user.setLastName(
+                userInfo.getLastName() != null ? userInfo.getLastName() :
+                        "");
         user.setPassword(""); // OAuth2 users don't have passwords
         user.setAuthProvider(
                 AuthProvider.valueOf(userRequest.getClientRegistration()
                         .getRegistrationId().toUpperCase()));
         user.setCreatedAt(LocalDateTime.now());
-
+        user.setEmailVerified(true);
         userRepository.save(user);
     }
 
     private void updateExistingUser(User existingUser,
                                     OAuth2UserInfo userInfo) {
         existingUser.setFirstName(userInfo.getFirstName());
-        existingUser.setLastName(userInfo.getLastName());
-
+        existingUser.setLastName(
+                userInfo.getLastName() != null ? userInfo.getLastName() :
+                        "");
         userRepository.save(existingUser);
     }
 }

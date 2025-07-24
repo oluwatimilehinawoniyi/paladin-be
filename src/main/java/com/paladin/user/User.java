@@ -43,10 +43,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean emailVerified = false;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String activationCode;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime activationCodeExpiry;
 
 
