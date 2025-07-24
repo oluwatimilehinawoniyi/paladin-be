@@ -1,6 +1,7 @@
 package com.paladin.mappers;
 
 import com.paladin.dto.UserDTO;
+import com.paladin.dto.UserResponseDTO;
 import com.paladin.user.User;
 import org.mapstruct.Mapper;
 
@@ -8,5 +9,5 @@ import org.mapstruct.Mapper;
 public interface UserMapper {
     UserDTO toDTO(User user);
 
-    User toEntity(UserDTO dto);
+    UserResponseDTO toResponseDTO(User user);
 }

@@ -3,8 +3,6 @@ package com.paladin.dto;
 import lombok.Data;
 
 @Data
-public class LoginDTO {
-    private String email;
+public class PasswordDto {
     private String password;
-    private boolean rememberMe;
 }

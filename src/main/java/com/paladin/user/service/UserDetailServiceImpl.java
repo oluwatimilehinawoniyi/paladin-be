@@ -3,6 +3,8 @@ package com.paladin.user.service;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserDetailServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
@@ -17,13 +20,27 @@ public class UserDetailServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
-        System.out.println("Loading user: " + email);
-        User user = userRepository.findByEmail(email);
+        log.info("Attempting to load user by email: {}",
+                email); // Use logger
+        User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
-            System.out.println("User not found: " + email);
+            log.warn("User not found: {}", email);
             throw new UsernameNotFoundException("User not found");
         }
-        System.out.println("User found: " + user.getEmail());
+
+        log.info("User found: {} with ID: {}", user.getEmail(),
+                user.getId());
+
+        if (user.getPassword() == null) {
+            throw new BadCredentialsException(
+                    "Password not set. Use OAuth login.");
+        }
+
+        if (!user.isEmailVerified()) {
+            throw new BadCredentialsException(
+                    "Email not verified. Please check your inbox for a verification link.");
+        }
+
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())

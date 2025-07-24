@@ -1,26 +1,47 @@
 package com.paladin.mappers;
 
-import com.paladin.cv.CV;
-import com.paladin.dto.CVSummaryDTO;
-import com.paladin.dto.ProfileDTO;
+import com.paladin.dto.ProfileCreateRequestDTO;
+import com.paladin.dto.ProfileResponseDTO;
 import com.paladin.dto.ProfileSummaryDTO;
+import com.paladin.dto.ProfileUpdateRequestDTO;
 import com.paladin.profile.Profile;
+import com.paladin.user.User;
 import org.mapstruct.*;
+
+import java.util.UUID;
 
 @Mapper(componentModel = "spring", uses = {CVMapper.class})
 public interface ProfileMapper {
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "cv", target = "cv")
-    ProfileDTO toDTO(Profile profile);
+    ProfileResponseDTO toResponseDTO(Profile profile);
 
-    @Mapping(source = "userId", target = "user.id")
-    Profile toEntity(ProfileDTO dto);
+    @Mapping(target = "id", ignore = true) // DB generates ID
+    @Mapping(target = "user", ignore = true) // Service sets user
+    @Mapping(target = "cv", ignore = true) // ID links CV in service
+    @Mapping(target = "createdAt", ignore = true)
+        // Set by service
+    Profile toEntity(ProfileCreateRequestDTO dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "cv", ignore = true) // ID links CV in service
+    @Mapping(target = "createdAt", ignore = true)
+    @BeanMapping(
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateProfileFromDto(ProfileUpdateRequestDTO dto,
+                              @MappingTarget Profile profile);
 
     @Mapping(source = "cv", target = "cv")
     ProfileSummaryDTO toSummaryDTO(Profile profile);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateProfileFromDto(ProfileDTO dto, @MappingTarget Profile profile);
-
+    default User map(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        User user = new User();
+        user.setId(userId);
+        return user;
+    }
 }
 

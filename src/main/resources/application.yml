@@ -1,4 +1,17 @@
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
   application:
     name: paladin
 
@@ -9,6 +22,7 @@ spring:
       enabled: true
 
   datasource:
+    driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/paladin
     name: ${DB_NAME}
     username: ${DB_USERNAME}
@@ -36,13 +50,6 @@ spring:
               - email
               - profile
 
-  session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
-      table-name: SPRING_SESSION
-    timeout: 3600s
-
 server:
   servlet:
     session:
@@ -51,7 +58,7 @@ server:
         http-only: true
         secure: false # true in production
         same-site: lax
-        max-age: 3600
+        max-age: 150 # 3600
 
 aws:
   s3:
@@ -59,3 +66,14 @@ aws:
     region: us-east-1
   access-key-id: ${AWS_ACCESS_KEY_ID}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+debug: true
+
+security:
+  rememberme:
+    key: ${REMEMBER_ME_KEY}

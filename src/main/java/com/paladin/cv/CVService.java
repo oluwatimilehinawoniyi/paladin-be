@@ -3,10 +3,13 @@ package com.paladin.cv;
 import com.paladin.dto.CVDTO;
 import com.paladin.exceptions.CVNotFoundException;
 import com.paladin.exceptions.InvalidFileException;
+import com.paladin.exceptions.ProfileNotFoundException;
+import com.paladin.exceptions.UnauthorizedAccessException;
 import com.paladin.mappers.CVMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.ProfileRepository;
 import com.paladin.s3_CV_Storage.S3CVStorageService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,49 +40,77 @@ public class CVService {
                     ".wordprocessingml.document"
     );
 
-    public CVDTO uploadCV(MultipartFile file, UUID profileId) {
+    @Transactional
+    public CVDTO uploadCV(MultipartFile file,
+                          UUID profileId,
+                          UUID userId) {
         validateFile(file);
 
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(
                         () -> new RuntimeException("Profile not found"));
 
-        if (profile.getCv() != null) {
-            deleteCV(profile.getCv().getId());
+        if (!profile.getUser().getId().equals(userId)) {
+            throw new UnauthorizedAccessException("You are not " +
+                    "authorized to upload CV to this profile.");
         }
 
-        String s3Url = s3CVStorageService.uploadFile(file, generateS3Key(
-                Objects.requireNonNull(file.getOriginalFilename()),
-                profileId
-        ));
+        CV oldCV = profile.getCv();
+        if (oldCV != null) {
+            String oldKey = extractKeyFromUrl(oldCV.getUrl());
+            s3CVStorageService.deleteFile(oldKey);
+            profile.setCv(null);
+            cvRepository.delete(oldCV);
+            log.info("Deleted old CV (ID: {}) for profile (ID: {})",
+                    oldCV.getId(), profile.getId());
+        }
 
-        CV cv = CV.builder()
+        String fileName = file.getOriginalFilename();
+        String s3Key = generateS3Key(Objects.requireNonNull(fileName),
+                UUID.randomUUID());
+        String s3CVUrl = s3CVStorageService.uploadFile(file, s3Key);
+
+        CV newCv = CV.builder()
                 .fileName(file.getOriginalFilename())
-                .url(s3Url)
+                .url(s3CVUrl)
                 .uploadedAt(LocalDateTime.now())
                 .size(file.getSize())
                 .contentType(file.getContentType())
                 .build();
 
-        cvRepository.save(cv);
-
-        profile.setCv(cv);
+        CV savedCv = cvRepository.save(newCv);
+        profile.setCv(savedCv);
         profileRepository.save(profile);
 
-        return cVMapper.toDTO(cv);
+        log.info("Uploaded new CV (ID: {}) for profile (ID: {})",
+                savedCv.getId(), profileId);
+        return cVMapper.toDTO(savedCv);
     }
 
-    public CVDTO getCVById(UUID cvId) {
+    public CVDTO getCVById(UUID cvId, UUID userId) {
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new CVNotFoundException("CV not " +
                         "found"));
+        Profile profile = profileRepository.findByCvId(cvId)
+                .orElseThrow(() -> new CVNotFoundException(
+                        "CV is not attached to any profile"));
+
+        if (!profile.getUser().getId().equals(userId)) {
+            throw new UnauthorizedAccessException(
+                    "You are not authorized to view this CV.");
+        }
         return cVMapper.toDTO(cv);
     }
 
-    public CVDTO getCVbyProfileId(UUID profileId) {
+    public CVDTO getCVbyProfileId(UUID profileId, UUID userId) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(
-                        () -> new RuntimeException("Profile not found"));
+                        () -> new ProfileNotFoundException(
+                                "Profile not found"));
+        if (!profile.getUser().getId().equals(userId)) {
+            throw new UnauthorizedAccessException(
+                    "You are not authorized to view this CV.");
+        }
 
         if (profile.getCv() == null) {
             throw new CVNotFoundException(
@@ -89,11 +120,20 @@ public class CVService {
         return cVMapper.toDTO(profile.getCv());
     }
 
-    public CVDTO updateCV(UUID cvId, MultipartFile file) {
+    public CVDTO updateCV(UUID cvId, MultipartFile file, UUID userId) {
+        validateFile(file);
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new CVNotFoundException("CV not " +
                         "found for id: " + cvId));
-        validateFile(file);
+
+        Profile profile = profileRepository.findByCvId(cvId)
+                .orElseThrow(() -> new CVNotFoundException(
+                        "CV is not associated with any profile for update."));
+
+        if (!profile.getUser().getId().equals(userId)) {
+            throw new UnauthorizedAccessException(
+                    "You are not authorized to update this CV.");
+        }
 
         String oldKey = extractKeyFromUrl(cv.getUrl());
         s3CVStorageService.deleteFile(oldKey);
@@ -113,30 +153,55 @@ public class CVService {
         return cVMapper.toDTO(updatedCV);
     }
 
-    public byte[] downloadCV(UUID cvId) {
+    public byte[] downloadCV(UUID cvId, UUID userId) {
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new CVNotFoundException("CV not " +
                         "found"));
+        Profile profile = profileRepository.findByCvId(cvId)
+                .orElseThrow(() -> new CVNotFoundException("CV is not " +
+                        "associated with any profile."));
+
+
+        if (!profile.getUser().getId().equals(userId)) {
+            throw new UnauthorizedAccessException(
+                    "You are not authorized to view this CV.");
+        }
 
         String key = extractKeyFromUrl(cv.getUrl());
         return s3CVStorageService.downloadFile(key);
     }
 
-    public void deleteCV(UUID cvId) {
+    public void deleteCV(UUID cvId, UUID userId) {
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new CVNotFoundException("CV not " +
                         "found"));
 
 //      detach cv from profiles
-        List<Profile> profiles = profileRepository.findAllByCvId(cvId);
+        List<Profile> profiles = profileRepository.findAllByCvId(cvId)
+                .orElseThrow(() -> new CVNotFoundException("CV is not " +
+                        "associated with any profile."));
+        boolean authorized = false;
         for (Profile profile : profiles) {
-            profile.setCv(null);
+            if (profile.getUser().getId().equals(userId)) {
+                authorized = true;
+                profile.setCv(null);
+                profileRepository.save(profile);
+                log.info("Detached CV (ID: {}) from profile (ID: {})",
+                        cvId, profile.getId());
+            }
+        }
+
+        if (!authorized) {
+            throw new UnauthorizedAccessException(
+                    "You are not authorized to delete this CV.");
         }
 
         String key = extractKeyFromUrl(cv.getUrl());
 
         s3CVStorageService.deleteFile(key);
+        log.info("Deleted CV (ID: {}) from S3", cvId);
         cvRepository.delete(cv);
+        log.info("Deleted CV (ID: {}) from database", cvId);
     }
 
 //     Utils
