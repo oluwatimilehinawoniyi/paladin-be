@@ -1,5 +1,8 @@
 package com.paladin.s3_CV_Storage;
 
+import com.paladin.exceptions.s3.S3DeleteException;
+import com.paladin.exceptions.s3.S3DownloadException;
+import com.paladin.exceptions.s3.S3UploadException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +13,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -46,9 +52,24 @@ public class S3CVStorageService {
                     key
             );
 
+        } catch (IOException e) {
+            log.error("IO error during S3 upload of file {}: {}", key,
+                    e.getMessage(), e);
+            throw new S3UploadException(
+                    "Failed to read file data for upload.", e);
+        } catch (S3Exception e) {
+            log.error(
+                    "S3 service error during upload of file {}: Code={}, Message={}",
+                    key, e.statusCode(),
+                    e.awsErrorDetails().errorMessage(), e);
+            throw new S3UploadException(
+                    "S3 service error during file upload: " + e.awsErrorDetails()
+                            .errorMessage(), e);
         } catch (Exception e) {
-            log.error("Error uploading file to S3: {}", e.getMessage());
-            throw new RuntimeException("Failed to upload file to S3", e);
+            log.error("Unexpected error during S3 upload of file {}: {}",
+                    key, e.getMessage(), e);
+            throw new S3UploadException(
+                    "An unexpected error occurred during file upload.", e);
         }
     }
 
@@ -61,10 +82,24 @@ public class S3CVStorageService {
 
             return s3Client.getObject(request)
                     .readAllBytes();
+        } catch (S3Exception e) {
+            log.error(
+                    "S3 service error during download of file {}: Code={}, Message={}",
+                    key, e.statusCode(),
+                    e.awsErrorDetails().errorMessage(), e);
+            throw new S3DownloadException(
+                    "S3 service error during file download: " + e.awsErrorDetails()
+                            .errorMessage(), e);
+        } catch (IOException e) {
+            log.error("IO error during S3 download of file {}: {}", key,
+                    e.getMessage(), e);
+            throw new S3DownloadException(
+                    "Failed to read downloaded file data.", e);
         } catch (Exception e) {
-            log.error("Error downloading file from S3: {}",
-                    e.getMessage());
-            throw new RuntimeException("Failed to download file from S3",
+            log.error("Unexpected error during S3 download of file {}: {}",
+                    key, e.getMessage(), e);
+            throw new S3DownloadException(
+                    "An unexpected error occurred during file download.",
                     e);
         }
     }
@@ -78,9 +113,20 @@ public class S3CVStorageService {
                             .build();
 
             s3Client.deleteObject(deleteObjectRequest);
+        } catch (S3Exception e) {
+            log.error(
+                    "S3 service error during deletion of file {}: Code={}, Message={}",
+                    key, e.statusCode(),
+                    e.awsErrorDetails().errorMessage(), e);
+            throw new S3DeleteException(
+                    "S3 service error during file deletion: " + e.awsErrorDetails()
+                            .errorMessage(), e);
         } catch (Exception e) {
-            log.error("Error deleting file from S3: {}", e.getMessage());
-            throw new RuntimeException("Failed to delete file from S3", e);
+            log.error("Unexpected error during S3 deletion of file {}: {}",
+                    key, e.getMessage(), e);
+            throw new S3DeleteException(
+                    "An unexpected error occurred during file deletion.",
+                    e);
         }
     }
 
