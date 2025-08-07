@@ -2,8 +2,9 @@ package com.paladin.enums;
 
 public enum ApplicationStatus {
     SENT,
-    REPLIED,
+    VIEWED,
     INTERVIEW,
     REJECTED,
-    OFFER
+    ACCEPTED,
+    FOLLOW_UP
 }

@@ -49,6 +49,14 @@ public class User implements UserDetails {
     @Column(nullable = true)
     private LocalDateTime activationCodeExpiry;
 
+    @Column(length = 2048)
+    private String accessToken;
+
+    @Column(length = 2048)
+    private String refreshToken;
+
+    private LocalDateTime accessTokenExpiry;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

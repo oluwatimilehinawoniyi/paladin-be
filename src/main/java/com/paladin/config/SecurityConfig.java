@@ -1,5 +1,6 @@
 package com.paladin.config;
 
+import com.paladin.auth.OAuth2AuthenticationSuccessHandler;
 import com.paladin.user.service.CustomOAuth2UserService;
 import com.paladin.user.service.UserDetailServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.session.web.http.CookieHttpSessionIdResolver;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -28,6 +34,7 @@ public class SecurityConfig {
 
     private final UserDetailServiceImpl userDetailService;
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
 
     @Value("${security.rememberme.key}")
     private String rememberMeKey;
@@ -36,6 +43,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
             throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(Customizer.withDefaults())
                 .oauth2Login(oauth2 -> oauth2
@@ -49,6 +57,7 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                         )
+                        .successHandler(oauth2SuccessHandler)
                 )
                 .rememberMe(remember ->
                                 remember
@@ -111,7 +120,7 @@ public class SecurityConfig {
 
     @Bean
     public RememberMeServices rememberMeServices() {
-        // Use default persistent service with in-memory token repository (for now)
+        // Use default persistent service with in-memory token kjblbu (for now)
         TokenBasedRememberMeServices services =
                 new TokenBasedRememberMeServices(rememberMeKey,
                         userDetailService);
@@ -121,4 +130,18 @@ public class SecurityConfig {
         services.setTokenValiditySeconds(1209600);
         return services;
     }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
 }

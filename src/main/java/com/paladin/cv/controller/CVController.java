@@ -1,6 +1,8 @@
-package com.paladin.cv;
+package com.paladin.cv.controller;
 
+import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.dto.CVDTO;
+import com.paladin.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -8,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +26,7 @@ import java.util.UUID;
         description = "Endpoints for managing CV uploads")
 public class CVController {
 
-    private final CVService cvService;
+    private final CVServiceImpl cvServiceImpl;
     private final UserService userService;
 
     @Operation(
@@ -37,35 +40,41 @@ public class CVController {
             }
     )
     @PostMapping("/upload")
-    public ResponseEntity<CVDTO> uploadCV(
+    public ResponseEntity<Object> uploadCV(
             @RequestParam("file") MultipartFile file,
             @RequestParam("profileId") UUID profileId,
             Principal principal
     ) {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        CVDTO cvdto = cvService.uploadCV(file, profileId, userId);
-        return ResponseEntity.ok(cvdto);
+        CVDTO cvdto = cvServiceImpl.uploadCV(file, profileId, userId);
+        return ResponseHandler.responseBuilder(
+                "CV successfully updated",
+                HttpStatus.OK,
+                cvdto);
     }
 
     @GetMapping("/{cvId}")
-    public ResponseEntity<CVDTO> getCVById(
+    public ResponseEntity<Object> getCVById(
             @PathVariable UUID cvId,
             Principal principal
     ) {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        CVDTO cvdto = cvService.getCVById(cvId, userId);
-        return ResponseEntity.ok(cvdto);
+        CVDTO cvdto = cvServiceImpl.getCVById(cvId, userId);
+        return ResponseHandler.responseBuilder("CV successfully returned", HttpStatus.OK, cvdto);
     }
 
     @GetMapping("/profile/{profileId}")
-    public ResponseEntity<CVDTO> getCVByProfileId(
+    public ResponseEntity<Object> getCVByProfileId(
             @PathVariable UUID profileId, Principal principal) {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        CVDTO cvdto = cvService.getCVbyProfileId(profileId, userId);
-        return ResponseEntity.ok(cvdto);
+        CVDTO cvdto = cvServiceImpl.getCVbyProfileId(profileId, userId);
+        return ResponseHandler.responseBuilder(
+                "CV successfully returned",
+                HttpStatus.OK,
+                cvdto);
     }
 
     @GetMapping("/{cvId}/download")
@@ -75,8 +84,8 @@ public class CVController {
             throws IOException {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        byte[] cvData = cvService.downloadCV(cvId, userId);
-        CVDTO cvDTO = cvService.getCVById(cvId, userId);
+        byte[] cvData = cvServiceImpl.downloadCV(cvId, userId);
+        CVDTO cvDTO = cvServiceImpl.getCVById(cvId, userId);
 
         response.setContentType(cvDTO.getContentType());
         response.setContentLength(cvData.length);
@@ -90,25 +99,31 @@ public class CVController {
     }
 
     @PutMapping("/{cvId}")
-    public ResponseEntity<CVDTO> updateCV(
+    public ResponseEntity<Object> updateCV(
             @PathVariable UUID cvId,
             @RequestParam("file") MultipartFile file,
             Principal principal
     ) {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        CVDTO updatedCV = cvService.updateCV(cvId, file, userId);
-        return ResponseEntity.ok(updatedCV);
+        CVDTO updatedCV = cvServiceImpl.updateCV(cvId, file, userId);
+        return ResponseHandler.responseBuilder(
+                "CV successfully returned",
+                HttpStatus.OK,
+                updatedCV);
     }
 
     @DeleteMapping("/{cvId}")
-    public ResponseEntity<Void> deleteCV(
+    public ResponseEntity<Object> deleteCV(
             @PathVariable UUID cvId,
             Principal principal
     ) {
         UUID userId =
                 userService.getUserByEmail(principal.getName()).getId();
-        cvService.deleteCV(cvId, userId);
-        return ResponseEntity.noContent().build();
+        cvServiceImpl.deleteCV(cvId, userId);
+        return ResponseHandler.responseBuilder(
+                "CV successfully deleted",
+                HttpStatus.NO_CONTENT, ""
+        );
     }
 }

@@ -1,8 +1,8 @@
-// src/main/java/com/paladin/user/controller/UserController.java
 package com.paladin.user.controller;
 
 import com.paladin.dto.UserResponseDTO; // Assuming you have this DTO now
 import com.paladin.mappers.UserMapper; // You'll need UserMapper here
+import com.paladin.response.ResponseHandler;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class UserController {
     private final UserMapper userMapper;
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponseDTO> getCurrentUser(Principal principal) {
+    public ResponseEntity<Object> getCurrentUser(Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -33,7 +33,11 @@ public class UserController {
 
         // Map the User entity to UserResponseDTO
         UserResponseDTO userResponseDTO = userMapper.toResponseDTO(user);
-        return ResponseEntity.ok(userResponseDTO);
+        return ResponseHandler.responseBuilder(
+                "User details successfully returned",
+                HttpStatus.OK,
+                userResponseDTO
+        );
     }
 
 }

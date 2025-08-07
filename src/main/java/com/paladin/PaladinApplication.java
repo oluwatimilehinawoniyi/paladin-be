@@ -2,12 +2,12 @@ package com.paladin;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
+@EnableConfigurationProperties
 public class PaladinApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(PaladinApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(PaladinApplication.class, args);
+    }
 }

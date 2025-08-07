@@ -1,7 +1,9 @@
-package com.paladin.profile;
+package com.paladin.profile.controller;
 
 import com.paladin.dto.*;
 import com.paladin.exceptions.UserNotFoundException;
+import com.paladin.profile.service.impl.ProfileServiceImpl;
+import com.paladin.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,55 +20,73 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProfileController {
 
-    private final ProfileService profileService;
+    private final ProfileServiceImpl profileServiceImpl;
     private final UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity<List<ProfileSummaryDTO>> getProfiles(
+    public ResponseEntity<Object> getProfiles(
             Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);
         List<ProfileSummaryDTO> profiles =
-                profileService.getProfilesByUserId(userId);
-        return ResponseEntity.ok(profiles);
+                profileServiceImpl.getProfilesByUserId(userId);
+
+        return ResponseHandler.responseBuilder(
+                "List of profiles for the current user",
+                HttpStatus.OK,
+                profiles
+        );
     }
 
     @GetMapping("/{profileId}")
-    public ResponseEntity<ProfileResponseDTO> getProfileById(
+    public ResponseEntity<Object> getProfileById(
             @PathVariable UUID profileId, Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);
         ProfileResponseDTO profile =
-                profileService.getProfileById(profileId, userId);
-        return ResponseEntity.ok(profile);
+                profileServiceImpl.getProfileById(profileId, userId);
+        return ResponseHandler.responseBuilder(
+                "Details of the requested profile for the current user",
+                HttpStatus.OK,
+                profile
+        );
     }
 
     @PostMapping
-    public ResponseEntity<ProfileResponseDTO> createProfile(
+    public ResponseEntity<Object> createProfile(
             @Valid @RequestBody ProfileCreateRequestDTO request,
             Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);
         ProfileResponseDTO newProfile =
-                profileService.createProfileForUser(request, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newProfile);
+                profileServiceImpl.createProfileForUser(request, userId);
+        return ResponseHandler.responseBuilder(
+                "Profile successfully created",
+                HttpStatus.CREATED,
+                newProfile);
     }
 
     @PatchMapping("/{profileId}")
-    public ResponseEntity<ProfileResponseDTO> updateProfile(
+    public ResponseEntity<Object> updateProfile(
             @PathVariable UUID profileId,
             @Valid @RequestBody ProfileUpdateRequestDTO request,
             Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);
         ProfileResponseDTO updatedProfile =
-                profileService.updateProfile(userId, profileId, request);
-        return ResponseEntity.ok(updatedProfile);
+                profileServiceImpl.updateProfile(userId, profileId, request);
+        return ResponseHandler.responseBuilder(
+                "Profile successfully updated",
+                HttpStatus.OK,
+                updatedProfile);
     }
 
     @DeleteMapping("/{profileId}")
-    public ResponseEntity<Void> deleteProfile(
+    public ResponseEntity<Object> deleteProfile(
             @PathVariable UUID profileId,
             Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);
-        profileService.deleteProfile(profileId, userId);
-        return ResponseEntity.noContent().build();
+        profileServiceImpl.deleteProfile(profileId, userId);
+        return ResponseHandler.responseBuilder(
+                "Profile successfully deleted",
+                HttpStatus.NO_CONTENT, ""
+        );
     }
 
     private UUID getUserIdFromPrincipal(Principal principal) {

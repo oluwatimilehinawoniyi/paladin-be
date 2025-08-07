@@ -53,13 +53,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     "Email not found from OAuth2 provider");
         }
 
-        Optional<User> userOptional =
-                userRepository.findByEmail(userInfo.getEmail());
-        User user;
+        User user =
+                userRepository.findByEmail(userInfo.getEmail())
+                        .orElse(null);
 
-        if (userOptional.isPresent()) {
-            // User exists, update if necessary
-            user = userOptional.get();
+        if (user != null) {
             if (!user.getAuthProvider().name()
                     .equalsIgnoreCase(registrationId)) {
                 throw new OAuth2AuthenticationException(
@@ -69,8 +67,28 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             updateExistingUser(user, userInfo);
         } else {
             // Create a new user
-            registerNewUser(userRequest, userInfo);
+            user = registerNewUser(userRequest, userInfo);
         }
+
+        user.setAccessToken(userRequest.getAccessToken().getTokenValue());
+        user.setAccessTokenExpiry(
+                userRequest.getAccessToken().getExpiresAt() != null ?
+                        LocalDateTime.ofInstant(
+                                userRequest.getAccessToken()
+                                        .getExpiresAt(),
+                                java.time.ZoneOffset.UTC) : null);
+
+        if (userRequest.getAdditionalParameters().containsKey(
+                "refresh_token")) {
+            user.setRefreshToken(
+                    (String) userRequest.getAdditionalParameters()
+                            .get("refresh_token"));
+        } else {
+            log.debug(
+                    "Refresh token not available in OAuth2UserRequest for user: {}",
+                    userInfo.getEmail());
+        }
+        userRepository.save(user);
 
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority("USER")),
@@ -79,7 +97,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
-    private void registerNewUser(OAuth2UserRequest userRequest,
+    private User registerNewUser(OAuth2UserRequest userRequest,
                                  OAuth2UserInfo userInfo) {
         User user = new User();
         user.setEmail(userInfo.getEmail());
@@ -94,14 +112,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setCreatedAt(LocalDateTime.now());
         user.setEmailVerified(true);
         userRepository.save(user);
+        return user;
     }
 
-    private void updateExistingUser(User existingUser,
+    private User updateExistingUser(User existingUser,
                                     OAuth2UserInfo userInfo) {
         existingUser.setFirstName(userInfo.getFirstName());
         existingUser.setLastName(
                 userInfo.getLastName() != null ? userInfo.getLastName() :
                         "");
         userRepository.save(existingUser);
+        return existingUser;
     }
 }

@@ -49,6 +49,8 @@ spring:
             scope:
               - email
               - profile
+              - openId
+              - https://www.googleapis.com/auth/gmail.send
 
 server:
   servlet:

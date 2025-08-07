@@ -1,5 +1,6 @@
-package com.paladin.profile;
+package com.paladin.profile.repository;
 
+import com.paladin.profile.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

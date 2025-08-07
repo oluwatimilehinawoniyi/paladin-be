@@ -116,6 +116,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CannotSendMailException.class)
+    public ResponseEntity<ErrorResponse> handleNotImplementedException(
+            Exception ex, WebRequest request) {
+        log.error("Action Not Implemented Exception: {} - {}", ex.getMessage(),
+                request.getDescription(false), ex);
+        HttpStatus status = HttpStatus.NOT_IMPLEMENTED;
+        return new ResponseEntity<>(
+                new ErrorResponse(
+                        "Action Not Implemented Exception. Please check your inputs and try again later.",
+                        request.getDescription(false), status.value()),
+                status
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {

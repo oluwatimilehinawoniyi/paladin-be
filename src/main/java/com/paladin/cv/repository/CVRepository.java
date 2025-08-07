@@ -1,5 +1,6 @@
-package com.paladin.cv;
+package com.paladin.cv.repository;
 
+import com.paladin.cv.CV;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

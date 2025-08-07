@@ -4,6 +4,7 @@ import com.paladin.auth.service.EmailService;
 import com.paladin.dto.*;
 import com.paladin.enums.AuthProvider;
 import com.paladin.exceptions.UserNotFoundException;
+import com.paladin.response.ResponseHandler;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import jakarta.servlet.http.*;
@@ -43,7 +44,6 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final RememberMeServices rememberMeServices;
     private final EmailService emailService;
-
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(
@@ -236,7 +236,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(
+    public ResponseEntity<Object> login(
             @RequestBody LoginDTO loginDto,
             HttpServletRequest request,
             HttpServletResponse httpServletResponse) {
@@ -315,7 +315,6 @@ public class AuthController {
                 }
             }
 
-            response.put("message", "Login successful!");
             response.put("sessionId", session.getId());
             response.put("user", new UserResponseDTO() {{
                 setId(Objects.requireNonNull(user).getId());
@@ -323,8 +322,10 @@ public class AuthController {
                 setFirstName(user.getFirstName());
                 setLastName(user.getLastName());
             }});
-
-            return ResponseEntity.ok(response);
+            return ResponseHandler.responseBuilder(
+                    "Login successful!",
+                    HttpStatus.OK,
+                    response);
 
         } catch (BadCredentialsException e) {
             response.put("error", "Invalid email or password");

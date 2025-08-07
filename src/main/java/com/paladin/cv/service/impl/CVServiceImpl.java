@@ -1,5 +1,8 @@
-package com.paladin.cv;
+package com.paladin.cv.service.impl;
 
+import com.paladin.cv.CV;
+import com.paladin.cv.repository.CVRepository;
+import com.paladin.cv.service.CVService;
 import com.paladin.dto.CVDTO;
 import com.paladin.exceptions.CVNotFoundException;
 import com.paladin.exceptions.InvalidFileException;
@@ -7,7 +10,7 @@ import com.paladin.exceptions.ProfileNotFoundException;
 import com.paladin.exceptions.UnauthorizedAccessException;
 import com.paladin.mappers.CVMapper;
 import com.paladin.profile.Profile;
-import com.paladin.profile.ProfileRepository;
+import com.paladin.profile.repository.ProfileRepository;
 import com.paladin.s3_CV_Storage.S3CVStorageService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +26,7 @@ import static com.paladin.utils.FileUtils.extractKeyFromUrl;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CVService {
+public class CVServiceImpl implements CVService {
 
     private final CVRepository cvRepository;
     private final ProfileRepository profileRepository;
@@ -118,6 +121,11 @@ public class CVService {
         }
 
         return cVMapper.toDTO(profile.getCv());
+    }
+
+    public CV getCVByIdAsEntity(UUID cvId) {
+        return cvRepository.findById(cvId)
+                .orElseThrow(() -> new CVNotFoundException("CV not found with ID: " + cvId));
     }
 
     public CVDTO updateCV(UUID cvId, MultipartFile file, UUID userId) {

@@ -25,18 +25,14 @@ public class JobApplication {
     @Column(nullable = false)
     private String jobTitle;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LocalDateTime sentAt;
+    private ApplicationStatus status = ApplicationStatus.SENT;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private ApplicationStatus status;
+    private LocalDateTime sentAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "cv_id", nullable = false)
-    private CV cv;
 }
