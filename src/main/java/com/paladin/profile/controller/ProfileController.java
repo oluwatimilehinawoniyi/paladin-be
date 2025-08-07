@@ -8,12 +8,17 @@ import com.paladin.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/profiles")
@@ -50,8 +55,41 @@ public class ProfileController {
         );
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createProfile(
+            @RequestParam("title") String title,
+            @RequestParam("summary") String summary,
+            @RequestParam("skills") String skillsJson,
+            @RequestParam("file") MultipartFile file,
+            Principal principal) {
+        UUID userId = getUserIdFromPrincipal(principal);
+        ProfileCreateRequestDTO request = new ProfileCreateRequestDTO();
+        request.setTitle(title);
+        request.setSummary(summary);
+
+        try {
+            String[] skillsArray = skillsJson.replace("[", "").replace("]", "")
+                    .replace("\"", "").split(",");
+            List<String> skills = Arrays.stream(skillsArray)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+            request.setSkills(skills);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid skills format"));
+        }
+
+        ProfileResponseDTO newProfile =
+                profileServiceImpl.createProfileForUser(request, userId);
+        return ResponseHandler.responseBuilder(
+                "Profile successfully created",
+                HttpStatus.CREATED,
+                newProfile);
+    }
+
+    @PostMapping
+    public ResponseEntity<Object> createProfileOnly(
             @Valid @RequestBody ProfileCreateRequestDTO request,
             Principal principal) {
         UUID userId = getUserIdFromPrincipal(principal);

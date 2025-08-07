@@ -2,6 +2,7 @@ package com.paladin.profile.service.impl;
 
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
+import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.dto.*;
 import com.paladin.exceptions.CVNotFoundException;
 import com.paladin.exceptions.UserNotFoundException;
@@ -15,6 +16,7 @@ import com.paladin.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +32,33 @@ public class ProfileServiceImpl implements ProfileService {
     private final CVRepository cVRepository;
     private final S3CVStorageService s3CVStorageService;
     private final UserRepository userRepository;
+    private final CVServiceImpl cvService;
+
+    @Transactional
+    public ProfileResponseDTO createProfileWithCV(
+            ProfileCreateRequestDTO request,
+            MultipartFile cvFile,
+            UUID userId
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new UserNotFoundException("User not found with ID: " + userId));
+
+        Profile newProfile = profileMapper.toEntity(request);
+        newProfile.setCreatedAt(LocalDateTime.now());
+        newProfile.setUser(user);
+
+        // save profile to get ID
+        Profile savedProfile = profileRepository.save(newProfile);
+
+        if (cvFile != null && !cvFile.isEmpty()){
+            CVDTO cvdto = cvService.uploadCV(cvFile, savedProfile.getId(), userId);
+            CV cv = cvService.getCVByIdAsEntity(UUID.fromString(cvdto.getId().toString()));
+            savedProfile.setCv(cv);
+            savedProfile = profileRepository.save(savedProfile);
+        }
+
+        return profileMapper.toResponseDTO(savedProfile);
+    }
 
     // create profile
     @Transactional

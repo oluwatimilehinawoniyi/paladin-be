@@ -4,11 +4,17 @@ import com.paladin.dto.ProfileCreateRequestDTO;
 import com.paladin.dto.ProfileResponseDTO;
 import com.paladin.dto.ProfileSummaryDTO;
 import com.paladin.dto.ProfileUpdateRequestDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface ProfileService {
+    public ProfileResponseDTO createProfileWithCV(
+            ProfileCreateRequestDTO request,
+            MultipartFile cvFile,
+            UUID userId);
+
     public ProfileResponseDTO createProfileForUser(
             ProfileCreateRequestDTO request,
             UUID userId);

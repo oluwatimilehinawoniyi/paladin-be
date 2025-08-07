@@ -140,7 +140,7 @@ public class AuthController {
                 """
                         Dear %s,
                         
-                        Please click on the following link to\
+                        Please click on the following link to \
                         verify your email address:
                         %s
                         

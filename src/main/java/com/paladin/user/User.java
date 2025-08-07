@@ -34,7 +34,7 @@ public class User implements UserDetails {
     private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY)
+            fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Profile> profiles = new ArrayList<>();
 
     @Column(nullable = false)

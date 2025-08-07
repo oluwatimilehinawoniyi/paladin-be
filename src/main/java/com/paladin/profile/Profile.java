@@ -2,6 +2,7 @@ package com.paladin.profile;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.paladin.cv.CV;
+import com.paladin.jobApplication.JobApplication;
 import com.paladin.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -32,9 +33,15 @@ public class Profile {
     @JsonIgnore
     private User user = new User();
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "cv_id")
     private CV cv;
+
+    @OneToMany(mappedBy = "profile",
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY,
+            orphanRemoval = true)
+    private List<JobApplication> jobApplications = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
