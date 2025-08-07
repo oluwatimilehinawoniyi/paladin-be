@@ -120,7 +120,7 @@ public class SecurityConfig {
 
     @Bean
     public RememberMeServices rememberMeServices() {
-        // Use default persistent service with in-memory token kjblbu (for now)
+        // Use default persistent service with in-memory token (for now)
         TokenBasedRememberMeServices services =
                 new TokenBasedRememberMeServices(rememberMeKey,
                         userDetailService);
