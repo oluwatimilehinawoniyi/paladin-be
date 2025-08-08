@@ -1,6 +1,8 @@
 package com.paladin.jobApplication.service.impl;
 
+import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.dto.JobApplicationDTO;
+import com.paladin.dto.JobApplicationEmailRequest;
 import com.paladin.dto.NewJobApplicationDTO;
 import com.paladin.enums.ApplicationStatus;
 import com.paladin.exceptions.CVNotFoundException;
@@ -13,6 +15,7 @@ import com.paladin.jobApplication.service.JobApplicationService;
 import com.paladin.mappers.JobApplicationMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.repository.ProfileRepository;
+import com.paladin.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +30,8 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final JobApplicationRepository jobApplicationRepository;
     private final JobApplicationMapper jobApplicationMapper;
     private final ProfileRepository profileRepository; // To link with profile
-    private final JobApplicationEmailServiceImpl jobApplicationEmailService; // To send email
+    private final EmailProviderService emailProviderService; // Changed from direct Gmail service
+    private final CVServiceImpl cvService;
 
     /**
      * Creates and sends a job application.
@@ -50,19 +54,31 @@ public class JobApplicationServiceImpl implements JobApplicationService {
             throw new CVNotFoundException("Profile does not have a CV linked to it.");
         }
 
+        User user = profile.getUser();
+
+        if (!emailProviderService.canUserSendEmails(user)) {
+            throw new RuntimeException(
+                    "Email provider connection required. Please connect your email account " +
+                            "to send job applications with CV attachments."
+            );
+        }
+
+        byte[] cvData = cvService.downloadCV(profile.getCv().getId(), userId);
+        JobApplicationEmailRequest emailRequest = new JobApplicationEmailRequest();
+        emailRequest.setToEmail(dto.getJobEmail());
+        emailRequest.setSubject(dto.getSubject());
+        emailRequest.setBodyText(dto.getBodyText());
+        emailRequest.setCvData(cvData);
+        emailRequest.setCvFileName(profile.getCv().getFileName());
+        emailRequest.setCvContentType(profile.getCv().getContentType());
+
         JobApplication jobApplication = jobApplicationMapper.toEntity(dto);
         jobApplication.setProfile(profile);
         jobApplication.setSentAt(LocalDateTime.now());
-        jobApplication.setStatus(ApplicationStatus.SENT); // Initial status
+        jobApplication.setStatus(ApplicationStatus.SENT);
 
         try {
-            jobApplicationEmailService.sendJobApplicationEmail(
-                    userId,
-                    dto.getJobEmail(),
-                    dto.subject,
-                    dto.bodyText,
-                    profile.getCv().getId()
-            );
+            emailProviderService.sendJobApplicationEmail(user, emailRequest);
         } catch (Exception e) {
             // Handle email sending failure, maybe log and throw a custom exception
             throw new CannotSendMailException("Failed to send job application email: " + e.getMessage(), e);
@@ -88,8 +104,8 @@ public class JobApplicationServiceImpl implements JobApplicationService {
      * Updates the status of an application.
      *
      * @param applicationId The ID of the application.
-     * @param newStatus The updated status of the application.
-     * @param userId The ID of the user.
+     * @param newStatus     The updated status of the application.
+     * @param userId        The ID of the user.
      * @return The updated job application.
      */
     public JobApplicationDTO updateJobApplicationStatus(UUID applicationId, ApplicationStatus newStatus, UUID userId) {

@@ -1,10 +1,8 @@
 package com.paladin.user.service;
 
 import com.paladin.enums.AuthProvider;
-import com.paladin.mappers.UserMapper;
 import com.paladin.user.User;
-import com.paladin.user.interfaces.OAuth2UserInfo;
-import com.paladin.user.model.OAuth2UserInfoFactory;
+import com.paladin.user.model.GoogleOAuth2UserInfo;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -44,13 +41,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                                          OAuth2User oauth2User) {
         String registrationId =
                 userRequest.getClientRegistration().getRegistrationId();
-        OAuth2UserInfo userInfo =
-                OAuth2UserInfoFactory.getOAuth2UserInfo(registrationId,
-                        oauth2User.getAttributes());
+
+        if (!"google".equalsIgnoreCase(registrationId)) {
+            throw new OAuth2AuthenticationException("Only Google authentication is supported");
+        }
+
+        GoogleOAuth2UserInfo userInfo =
+                new GoogleOAuth2UserInfo(oauth2User.getAttributes());
 
         if (userInfo.getEmail() == null || userInfo.getEmail().isEmpty()) {
             throw new OAuth2AuthenticationException(
-                    "Email not found from OAuth2 provider");
+                    "Email not found from Google");
         }
 
         User user =
@@ -58,16 +59,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                         .orElse(null);
 
         if (user != null) {
-            if (!user.getAuthProvider().name()
-                    .equalsIgnoreCase(registrationId)) {
-                throw new OAuth2AuthenticationException(
-                        "User is already registered with " + user.getAuthProvider() + " provider"
-                );
-            }
             updateExistingUser(user, userInfo);
         } else {
-            // Create a new user
-            user = registerNewUser(userRequest, userInfo);
+            user = registerNewUser(userInfo);
         }
 
         user.setAccessToken(userRequest.getAccessToken().getTokenValue());
@@ -78,16 +72,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                                         .getExpiresAt(),
                                 java.time.ZoneOffset.UTC) : null);
 
-        if (userRequest.getAdditionalParameters().containsKey(
-                "refresh_token")) {
-            user.setRefreshToken(
-                    (String) userRequest.getAdditionalParameters()
-                            .get("refresh_token"));
-        } else {
-            log.debug(
-                    "Refresh token not available in OAuth2UserRequest for user: {}",
-                    userInfo.getEmail());
-        }
         userRepository.save(user);
 
         return new DefaultOAuth2User(
@@ -97,31 +81,28 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         );
     }
 
-    private User registerNewUser(OAuth2UserRequest userRequest,
-                                 OAuth2UserInfo userInfo) {
+    private User registerNewUser(GoogleOAuth2UserInfo userInfo) {
         User user = new User();
         user.setEmail(userInfo.getEmail());
         user.setFirstName(userInfo.getFirstName());
         user.setLastName(
                 userInfo.getLastName() != null ? userInfo.getLastName() :
                         "");
-        user.setPassword(""); // OAuth2 users don't have passwords
-        user.setAuthProvider(
-                AuthProvider.valueOf(userRequest.getClientRegistration()
-                        .getRegistrationId().toUpperCase()));
+        user.setAuthProvider(AuthProvider.GOOGLE);
         user.setCreatedAt(LocalDateTime.now());
-        user.setEmailVerified(true);
-        userRepository.save(user);
-        return user;
+
+        log.info("Registering new Google user: {}", userInfo.getEmail());
+        return userRepository.save(user);
     }
 
     private User updateExistingUser(User existingUser,
-                                    OAuth2UserInfo userInfo) {
+                                    GoogleOAuth2UserInfo userInfo) {
         existingUser.setFirstName(userInfo.getFirstName());
         existingUser.setLastName(
                 userInfo.getLastName() != null ? userInfo.getLastName() :
                         "");
-        userRepository.save(existingUser);
-        return existingUser;
+
+        log.info("Updating existing Google user: {}", userInfo.getEmail());
+        return userRepository.save(existingUser);
     }
 }

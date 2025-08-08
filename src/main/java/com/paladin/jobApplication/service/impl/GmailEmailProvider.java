@@ -6,15 +6,14 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
+import com.paladin.auth.interfaces.EmailProvider;
 import com.paladin.config.GoogleOAuthConfig;
-import com.paladin.cv.CV;
-import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.exceptions.UserNotFoundException;
-import com.paladin.jobApplication.service.JobApplicationEmailService;
+import com.paladin.dto.JobApplicationEmailRequest;
+import com.paladin.enums.AuthProvider;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
@@ -23,6 +22,7 @@ import jakarta.mail.internet.MimeMultipart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import com.google.api.services.gmail.Gmail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,76 +32,63 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
 
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class JobApplicationEmailServiceImpl implements JobApplicationEmailService {
-
-    private final CVServiceImpl cvServiceImpl;
+public class GmailEmailProvider implements EmailProvider {
+    private final GoogleOAuthConfig googleOAuthConfig;
     private final UserRepository userRepository;
-    private final GoogleOAuthConfig googleConfig;
 
     private static final String APPLICATION_NAME = "Paladin Job Application";
     private static final GsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final NetHttpTransport HTTP_TRANSPORT = new NetHttpTransport();
 
+
+    @Override
     public void sendJobApplicationEmail(
-            UUID userId,
-            String toEmail,
-            String subject,
-            String bodyText,
-            UUID cvId
-    ) throws IOException, jakarta.mail.MessagingException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        if (user.getAccessToken() == null || user.getRefreshToken() == null) {
-            throw new RuntimeException("User not authenticated with Google or tokens are missing.");
-        }
-
+            User user,
+            JobApplicationEmailRequest request
+    ) throws IOException, MessagingException {
         Credential credential = createCredential(user);
         Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-                .setApplicationName(APPLICATION_NAME)
+                .setApplicationName("Paladin Job Application")
                 .build();
-
-        CV cv = cvServiceImpl.getCVByIdAsEntity(cvId);
-
-        byte[] cvData = null;
-        if (cv != null) {
-            cvData = cvServiceImpl.downloadCV(cv.getId(), userId);
-        }
 
         MimeMessage emailContent = createEmailWithAttachment(
                 user.getEmail(),
-                toEmail,
-                subject,
-                bodyText,
-                cvData,
-                cv != null ? cv.getContentType() : null,
-                cv != null ? cv.getFileName() : null
+                request.getToEmail(),
+                request.getSubject(),
+                request.getBodyText(),
+                request.getCvData(),
+                request.getCvContentType(),
+                request.getCvFileName()
         );
 
         Message message = createMessageWithEmail(emailContent);
+        service.users().messages().send(user.getEmail(), message).execute();
+        log.info("Email sent successfully via Gmail API to {}", request.getToEmail());
 
-        try {
-            service.users().messages().send(user.getEmail(), message).execute();
-            log.info("Email sent successfully to {}", toEmail);
-        } catch (IOException e) {
-            log.error("Failed to send email: {}", e.getMessage());
-            if (e.getMessage().contains("Token has been expired or revoked")) {
-                log.warn("Access token expired, attempting to refresh...");
-                refreshAccessToken(user);
-                throw new RuntimeException("Failed to send email due to expired token. Please try again or re-authenticate.", e);
-            }
-            throw new RuntimeException("Failed to send email", e);
-        }
     }
+
+    @Override
+    public boolean canSendEmails(User user) {
+        return user.getAuthProvider() == AuthProvider.GOOGLE &&
+                user.getAccessToken() != null &&
+                user.getRefreshToken() != null;
+    }
+
+    @Override
+    public AuthProvider getSupportedProvider() {
+        return AuthProvider.GOOGLE;
+    }
+
 
     private GoogleClientSecrets createClientSecrets() {
         GoogleClientSecrets clientSecrets = new GoogleClientSecrets();
         GoogleClientSecrets.Details details = new GoogleClientSecrets.Details();
-        details.setClientId(googleConfig.getClientId());
-        details.setClientSecret(googleConfig.getClientSecret());
+        details.setClientId(googleOAuthConfig.getClientId());
+        details.setClientSecret(googleOAuthConfig.getClientSecret());
         clientSecrets.setInstalled(details);
         return clientSecrets;
     }

@@ -7,6 +7,7 @@ import com.paladin.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/profiles")
 @RequiredArgsConstructor
@@ -62,6 +64,9 @@ public class ProfileController {
             @RequestParam("skills") String skillsJson,
             @RequestParam("file") MultipartFile file,
             Principal principal) {
+        log.info("Received file: {} with size: {} bytes and content type: {}",
+                file.getOriginalFilename(), file.getSize(), file.getContentType());
+
         UUID userId = getUserIdFromPrincipal(principal);
         ProfileCreateRequestDTO request = new ProfileCreateRequestDTO();
         request.setTitle(title);

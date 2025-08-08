@@ -48,6 +48,7 @@ public class CVServiceImpl implements CVService {
                           UUID profileId,
                           UUID userId) {
         validateFile(file);
+        log.info("Uploading file: {} with size: {} bytes", file.getOriginalFilename(), file.getSize());
 
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(

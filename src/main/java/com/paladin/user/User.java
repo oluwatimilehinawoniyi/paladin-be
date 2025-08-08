@@ -28,10 +28,8 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    private String password;
-
     @Enumerated(EnumType.STRING)
-    private AuthProvider authProvider = AuthProvider.LOCAL;
+    private AuthProvider authProvider = AuthProvider.GOOGLE;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,
             fetch = FetchType.LAZY, orphanRemoval = true)
@@ -40,15 +38,6 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(nullable = false)
-    private boolean emailVerified = false;
-
-    @Column(nullable = true)
-    private String activationCode;
-
-    @Column(nullable = true)
-    private LocalDateTime activationCodeExpiry;
-
     @Column(length = 2048)
     private String accessToken;
 
@@ -56,7 +45,6 @@ public class User implements UserDetails {
     private String refreshToken;
 
     private LocalDateTime accessTokenExpiry;
-
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -70,7 +58,11 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.emailVerified;
+        return true;
     }
 
+    @Override
+    public String getPassword() {
+        return null;
+    }
 }
