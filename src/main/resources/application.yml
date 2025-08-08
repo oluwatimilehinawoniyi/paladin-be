@@ -79,3 +79,7 @@ debug: true
 security:
   rememberme:
     key: ${REMEMBER_ME_KEY}
+
+app:
+  frontend:
+    url: http://localhost:5173

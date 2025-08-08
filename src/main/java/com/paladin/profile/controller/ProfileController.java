@@ -66,6 +66,7 @@ public class ProfileController {
         ProfileCreateRequestDTO request = new ProfileCreateRequestDTO();
         request.setTitle(title);
         request.setSummary(summary);
+        request.setFile(file);
 
         try {
             String[] skillsArray = skillsJson.replace("[", "").replace("]", "")
@@ -81,20 +82,7 @@ public class ProfileController {
         }
 
         ProfileResponseDTO newProfile =
-                profileServiceImpl.createProfileForUser(request, userId);
-        return ResponseHandler.responseBuilder(
-                "Profile successfully created",
-                HttpStatus.CREATED,
-                newProfile);
-    }
-
-    @PostMapping
-    public ResponseEntity<Object> createProfileOnly(
-            @Valid @RequestBody ProfileCreateRequestDTO request,
-            Principal principal) {
-        UUID userId = getUserIdFromPrincipal(principal);
-        ProfileResponseDTO newProfile =
-                profileServiceImpl.createProfileForUser(request, userId);
+                profileServiceImpl.createProfileWithCV(request, userId);
         return ResponseHandler.responseBuilder(
                 "Profile successfully created",
                 HttpStatus.CREATED,

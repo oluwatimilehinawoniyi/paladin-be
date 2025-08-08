@@ -2,7 +2,9 @@ package com.paladin.dto;
 
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +18,8 @@ public class ProfileCreateRequestDTO {
     @NotBlank(message = "Summary cannot be empty")
     private String summary;
 
-    private List<String> skills;
+    @NotNull(message = "A cv must be uploaded when creating a profile")
+    private MultipartFile file;
 
-    private UUID cvId;
+    private List<String> skills;
 }

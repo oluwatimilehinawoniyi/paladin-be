@@ -18,14 +18,11 @@ public interface ProfileMapper {
 
     @Mapping(target = "id", ignore = true) // DB generates ID
     @Mapping(target = "user", ignore = true) // Service sets user
-    @Mapping(target = "cv", ignore = true) // ID links CV in service
     @Mapping(target = "createdAt", ignore = true)
-        // Set by service
     Profile toEntity(ProfileCreateRequestDTO dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "cv", ignore = true) // ID links CV in service
     @Mapping(target = "createdAt", ignore = true)
     @BeanMapping(
             nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

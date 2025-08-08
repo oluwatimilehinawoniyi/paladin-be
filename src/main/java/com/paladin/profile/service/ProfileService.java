@@ -12,11 +12,6 @@ import java.util.UUID;
 public interface ProfileService {
     public ProfileResponseDTO createProfileWithCV(
             ProfileCreateRequestDTO request,
-            MultipartFile cvFile,
-            UUID userId);
-
-    public ProfileResponseDTO createProfileForUser(
-            ProfileCreateRequestDTO request,
             UUID userId);
 
     public List<ProfileSummaryDTO> getProfilesByUserId(UUID userId);

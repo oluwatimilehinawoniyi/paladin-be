@@ -10,5 +10,6 @@ public class CVSummaryDTO {
     private UUID id;
     private String fileName;
     private String url;
+    private long size;
     private LocalDateTime uploadedAt;
 }

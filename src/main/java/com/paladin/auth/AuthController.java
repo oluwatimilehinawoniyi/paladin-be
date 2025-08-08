@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,6 +45,9 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final RememberMeServices rememberMeServices;
     private final EmailService emailService;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(
@@ -144,7 +148,7 @@ public class AuthController {
                         verify your email address:
                         %s
                         
-                        This link\
+                        This link \
                         will expire in 10 minutes.
                         
                         Thank you,\
@@ -174,7 +178,7 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<Map<String, String>> verifyEmail(
+    public ResponseEntity<String> verifyEmail(
             @RequestParam("token") String token
     ) {
         try {
@@ -189,16 +193,22 @@ public class AuthController {
                 log.warn(
                         "Email verification failed: Invalid or non-existent token provided: {}",
                         token);
-                return ResponseEntity.badRequest().body(
-                        Map.of("error", "Invalid verification code!"));
+                return ResponseEntity.badRequest().body(generateErrorHtml(
+                        "Invalid Verification Code",
+                        "The verification code you provided is invalid or doesn't exist.",
+                        "Please check your email for the correct verification link or request a new one."
+                ));
             }
 
             if (user.isEmailVerified()) {
                 log.info(
                         "Email verification failed: Email already verified: {}",
                         user.getEmail());
-                return new ResponseEntity<>(createErrorResponse("Email " +
-                        "already verified!"), HttpStatus.CONFLICT);
+                return ResponseEntity.ok(generateSuccessHtml(
+                        "Email Already Verified",
+                        "Your email address has already been verified.",
+                        "You can now sign in to your account."
+                ));
             }
 
             if (user.getActivationCodeExpiry() == null || user.getActivationCodeExpiry()
@@ -206,32 +216,41 @@ public class AuthController {
                 log.warn(
                         "Email verification failed: Verification code has expired: {}",
                         token);
-                return new ResponseEntity<>(
-                        createErrorResponse("Verification " +
-                                "code has expired! Please try registering again to receive a new link."),
-                        HttpStatus.GONE);
+                return ResponseEntity.status(HttpStatus.GONE).body(generateErrorHtml(
+                        "Verification Code Expired",
+                        "Your verification code has expired.",
+                        "Please register again to receive a new verification link."
+                ));
             }
             user.setEmailVerified(true);
             user.setActivationCode(null);
             user.setActivationCodeExpiry(null);
             userRepository.save(user);
+
             log.info("Email successfully verified for user: {}",
                     user.getEmail());
-            return ResponseEntity.ok(
-                    Map.of("message", "Email verified successfully!"));
+            return ResponseEntity.ok(generateSuccessHtml(
+                    "Email Verified Successfully!",
+                    "Your email address has been verified successfully.",
+                    "You can now sign in to your Paladin account."
+            ));
         } catch (UserNotFoundException e) {
             log.error("User not found during email verification for " +
                     "token {}: {}", token, e.getMessage());
-            return new ResponseEntity<>(createErrorResponse("User not " +
-                    "found for this verification code!"),
-                    HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(generateErrorHtml(
+                    "User Not Found",
+                    "We couldn't find a user associated with this verification code.",
+                    "Please check your email for the correct verification link."
+            ));
         } catch (Exception e) {
             log.error(
                     "An unexpected error occurred during email verification for token {}: {}",
                     token, e.getMessage(), e);
-            return new ResponseEntity<>(createErrorResponse(
-                    "An unexpected error occurred during email verification."),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(generateErrorHtml(
+                    "Verification Error",
+                    "An unexpected error occurred during email verification.",
+                    "Please try again later or contact support if the problem persists."
+            ));
         }
     }
 
@@ -575,5 +594,241 @@ public class AuthController {
             return new AuthResult(false, null, HttpStatus.NOT_FOUND,
                     "User not found");
         }
+    }
+
+
+    private String generateSuccessHtml(String title, String message, String description) {
+        return String.format("""
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>%s - Paladin</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            background: linear-gradient(135deg, #ff4d00 0%%, #ff6b35 100%%);
+                            min-height: 100vh;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 20px;
+                        }
+                        .container {
+                            background: white;
+                            border-radius: 16px;
+                            padding: 48px 32px;
+                            max-width: 500px;
+                            width: 100%%;
+                            text-align: center;
+                            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                        }
+                        .success-icon {
+                            width: 80px;
+                            height: 80px;
+                            background: #10B981;
+                            border-radius: 50%%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 24px;
+                        }
+                        .checkmark {
+                            width: 40px;
+                            height: 40px;
+                            color: white;
+                            stroke-width: 3;
+                        }
+                        h1 {
+                            color: #111827;
+                            font-size: 28px;
+                            font-weight: 700;
+                            margin-bottom: 16px;
+                        }
+                        p {
+                            color: #6B7280;
+                            font-size: 16px;
+                            line-height: 1.6;
+                            margin-bottom: 32px;
+                        }
+                        .button {
+                            background: #ff4d00;
+                            color: white;
+                            padding: 12px 24px;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            text-decoration: none;
+                            display: inline-block;
+                            transition: background-color 0.2s;
+                            cursor: pointer;
+                        }
+                        .button:hover {
+                            background: #e63946;
+                        }
+                        .footer {
+                            margin-top: 32px;
+                            font-size: 14px;
+                            color: #9CA3AF;
+                        }
+                    </style>
+                    <script>
+                        // Auto-redirect after 5 seconds
+                        setTimeout(function() {
+                            window.location.href = 'http://localhost:5173/login';
+                        }, 5000);
+                
+                        function redirectToLogin() {
+                            window.location.href = 'http://localhost:5173/login';
+                        }
+                    </script>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="success-icon">
+                            <svg class="checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h1>%s</h1>
+                        <p>%s</p>
+                        <p><strong>%s</strong></p>
+                        <button class="button" onclick="redirectToLogin()">
+                            Continue to Login
+                        </button>
+                        <div class="footer">
+                            <p>You will be redirected automatically in 5 seconds...</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """, title, title, message, description);
+    }
+
+    private String generateErrorHtml(String title, String message, String description) {
+        return String.format("""
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>%s - Paladin</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            background: linear-gradient(135deg, #ef4444 0%%, #dc2626 100%%);
+                            min-height: 100vh;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 20px;
+                        }
+                        .container {
+                            background: white;
+                            border-radius: 16px;
+                            padding: 48px 32px;
+                            max-width: 500px;
+                            width: 100%%;
+                            text-align: center;
+                            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                        }
+                        .error-icon {
+                            width: 80px;
+                            height: 80px;
+                            background: #ef4444;
+                            border-radius: 50%%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto 24px;
+                        }
+                        .x-mark {
+                            width: 40px;
+                            height: 40px;
+                            color: white;
+                            stroke-width: 3;
+                        }
+                        h1 {
+                            color: #111827;
+                            font-size: 28px;
+                            font-weight: 700;
+                            margin-bottom: 16px;
+                        }
+                        p {
+                            color: #6B7280;
+                            font-size: 16px;
+                            line-height: 1.6;
+                            margin-bottom: 32px;
+                        }
+                        .button {
+                            background: #ff4d00;
+                            color: white;
+                            padding: 12px 24px;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            text-decoration: none;
+                            display: inline-block;
+                            transition: background-color 0.2s;
+                            cursor: pointer;
+                            margin-right: 12px;
+                        }
+                        .button:hover {
+                            background: #e63946;
+                        }
+                        .button-secondary {
+                            background: #6B7280;
+                            color: white;
+                            padding: 12px 24px;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: 600;
+                            text-decoration: none;
+                            display: inline-block;
+                            transition: background-color 0.2s;
+                            cursor: pointer;
+                        }
+                        .button-secondary:hover {
+                            background: #4B5563;
+                        }
+                    </style>
+                    <script>
+                        function redirectToRegister() {
+                            window.location.href = '%s/register';
+                        }
+                
+                        function redirectToLogin() {
+                            window.location.href = '%s/login';
+                        }
+                    </script>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="error-icon">
+                            <svg class="x-mark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                        <h1>%s</h1>
+                        <p>%s</p>
+                        <p><strong>%s</strong></p>
+                        <div style="margin-top: 24px;">
+                            <button class="button" onclick="redirectToRegister()">
+                                Try Again
+                            </button>
+                            <button class="button-secondary" onclick="redirectToLogin()">
+                                Go to Login
+                            </button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """, title, frontendUrl, frontendUrl, title, message, description);
     }
 }

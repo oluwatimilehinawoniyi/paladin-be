@@ -37,7 +37,6 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public ProfileResponseDTO createProfileWithCV(
             ProfileCreateRequestDTO request,
-            MultipartFile cvFile,
             UUID userId
     ) {
         User user = userRepository.findById(userId)
@@ -50,38 +49,13 @@ public class ProfileServiceImpl implements ProfileService {
         // save profile to get ID
         Profile savedProfile = profileRepository.save(newProfile);
 
-        if (cvFile != null && !cvFile.isEmpty()){
-            CVDTO cvdto = cvService.uploadCV(cvFile, savedProfile.getId(), userId);
+        if (request.getFile() != null && !request.getFile().isEmpty()){
+            CVDTO cvdto = cvService.uploadCV(request.getFile(), savedProfile.getId(), userId);
             CV cv = cvService.getCVByIdAsEntity(UUID.fromString(cvdto.getId().toString()));
             savedProfile.setCv(cv);
             savedProfile = profileRepository.save(savedProfile);
         }
 
-        return profileMapper.toResponseDTO(savedProfile);
-    }
-
-    // create profile
-    @Transactional
-    public ProfileResponseDTO createProfileForUser(
-            ProfileCreateRequestDTO request,
-            UUID userId) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "User not found with ID: " + userId));
-
-        Profile newProfile = profileMapper.toEntity(request);
-        newProfile.setCreatedAt(LocalDateTime.now());
-        newProfile.setUser(user);
-
-        if (request.getCvId() != null) {
-            CV cv = cVRepository.findById(request.getCvId())
-                    .orElseThrow(() -> new CVNotFoundException(
-                            "CV not found with ID: " + request.getCvId()));
-            newProfile.setCv(cv);
-        }
-
-        Profile savedProfile = profileRepository.save(newProfile);
         return profileMapper.toResponseDTO(savedProfile);
     }
 
