@@ -1,7 +1,7 @@
 package com.paladin.user.controller;
 
-import com.paladin.dto.UserResponseDTO; // Assuming you have this DTO now
-import com.paladin.mappers.UserMapper; // You'll need UserMapper here
+import com.paladin.dto.UserDTO;
+import com.paladin.mappers.UserMapper;
 import com.paladin.response.ResponseHandler;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
@@ -42,7 +42,7 @@ public class UserController {
         User user = userRepository.findByEmail(userEmail).orElseThrow();
 
         // Map the User entity to UserResponseDTO
-        UserResponseDTO userResponseDTO = userMapper.toResponseDTO(user);
+        UserDTO userResponseDTO = userMapper.toDTO(user);
         return ResponseHandler.responseBuilder(
                 "User details successfully returned",
                 HttpStatus.OK,

@@ -49,9 +49,10 @@ spring:
             scope:
               - email
               - profile
-              - openId
+              - openid
               - https://www.googleapis.com/auth/gmail.send
             authorization-grant-type: "authorization_code"
+            client-name: Google
         provider:
           google:
             authorization-uri: "https://accounts.google.com/o/oauth2/auth?access_type=offline&prompt=consent"

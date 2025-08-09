@@ -11,12 +11,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,38 +33,42 @@ public class AuthController {
     private final UserRepository userRepository;
 
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(
-            HttpServletRequest request,
-            HttpServletResponse response) {
-
-        SecurityContextHolder.clearContext();
+    public ResponseEntity<?> logout(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
-            log.info("User logged out and session invalidated.");
         }
 
-        Map<String, String> responseBody = new HashMap<>();
-        responseBody.put("message", "Logged out successfully");
-        return ResponseEntity.ok(responseBody);
+        return ResponseEntity.ok(Map.of(
+                "message", "Logged out successfully",
+                "httpStatus", "OK"
+        ));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getUserInfo(Principal principal) {
-        if (principal == null) {
+    public ResponseEntity<?> getUserInfo(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Not authenticated"));
         }
 
-        User user = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
 
-        UserDTO userResponse = new UserDTO();
-        userResponse.setId(user.getId());
-        userResponse.setEmail(user.getEmail());
-        userResponse.setFirstName(user.getFirstName());
-        userResponse.setLastName(user.getLastName());
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("email", oauth2User.getAttribute("email"));
+        userInfo.put("firstName", oauth2User.getAttribute("given_name"));
+        userInfo.put("lastName", oauth2User.getAttribute("family_name"));
 
-        return ResponseEntity.ok(Map.of("user", userResponse));
+        return ResponseEntity.ok(Map.of(
+                "data", Map.of("user", userInfo),
+                "message", "User authenticated",
+                "httpStatus", "OK"
+        ));
+    }
+
+    @GetMapping("/callback")
+    public void handleOAuthCallback(HttpServletResponse response) throws IOException, IOException {
+        // Redirect to frontend callback page
+        response.sendRedirect("http://localhost:5173/auth/callback");
     }
 }
