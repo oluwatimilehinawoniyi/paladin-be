@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,7 +40,20 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String userEmail = principal.getName();
+        String userEmail;
+
+        if (principal instanceof OAuth2AuthenticationToken oauth2Token) {
+            OAuth2User oauth2User = oauth2Token.getPrincipal();
+            userEmail = oauth2User.getAttribute("email");
+        } else {
+            userEmail = principal.getName();
+        }
+
+        if (userEmail == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Email not found"));
+        }
+
         User user = userRepository.findByEmail(userEmail).orElseThrow();
 
         // Map the User entity to UserResponseDTO
@@ -62,7 +77,20 @@ public class UserController {
         }
 
         try {
-            String userEmail = principal.getName();
+            String userEmail;
+
+            if (principal instanceof OAuth2AuthenticationToken oauth2Token) {
+                OAuth2User oauth2User = oauth2Token.getPrincipal();
+                userEmail = oauth2User.getAttribute("email");
+            } else {
+                userEmail = principal.getName();
+            }
+
+            if (userEmail == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Email not found"));
+            }
+
             log.info("User {} requested account deletion", userEmail);
 
             // Delete user and all associated data (domino effect)

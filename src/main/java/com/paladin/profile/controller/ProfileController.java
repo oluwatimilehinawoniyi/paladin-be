@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -124,6 +126,23 @@ public class ProfileController {
         if (principal == null) {
             throw new RuntimeException("Unauthorized: No principal found");
         }
+
+        if (principal instanceof OAuth2AuthenticationToken oauth2Token) {
+            OAuth2User oauth2User = oauth2Token.getPrincipal();
+            String userEmail = oauth2User.getAttribute("email");
+
+            if (userEmail == null) {
+                throw new RuntimeException("Email not found in OAuth2 user attributes");
+            }
+
+            UserDTO user = userService.getUserByEmail(userEmail);
+            if (user == null) {
+                throw new UserNotFoundException(
+                        "User not found for authenticated email: " + userEmail);
+            }
+            return user.getId();
+        }
+
         String userEmail = principal.getName();
         UserDTO user = userService.getUserByEmail(userEmail);
         if (user == null) {
