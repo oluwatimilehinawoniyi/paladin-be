@@ -1,6 +1,6 @@
 package com.paladin.auth.controller;
 
-import com.paladin.dto.UserResponseDTO;
+import com.paladin.dto.UserDTO;
 import com.paladin.exceptions.UserNotFoundException;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
@@ -56,7 +56,7 @@ public class AuthController {
         User user = userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        UserResponseDTO userResponse = new UserResponseDTO();
+        UserDTO userResponse = new UserDTO();
         userResponse.setId(user.getId());
         userResponse.setEmail(user.getEmail());
         userResponse.setFirstName(user.getFirstName());
