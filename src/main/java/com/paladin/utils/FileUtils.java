@@ -9,7 +9,6 @@ public class FileUtils {
     public static String extractKeyFromUrl(String s3Url) {
         try {
             String[] parts = s3Url.split("/");
-            // Join everything after the domain (parts[0] = https:, parts[1] = empty, parts[2] = domain)
             return String.join("/",
                     Arrays.copyOfRange(parts, 3, parts.length));
         } catch (Exception e) {

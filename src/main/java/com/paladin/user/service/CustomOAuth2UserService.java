@@ -12,7 +12,6 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 
@@ -22,20 +21,11 @@ import java.time.LocalDateTime;
 @Transactional
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    @PostConstruct
-    public void init() {
-        log.error("🟢🟢🟢 CustomOAuth2UserService bean created and initialized! 🟢🟢🟢");
-        log.error("🟢🟢🟢 UserRepository: {} 🟢🟢🟢", userRepository);
-    }
-
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     private final UserRepository userRepository;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        log.error("🚨🚨🚨 CUSTOM OAUTH2 USER SERVICE CALLED!!! 🚨🚨🚨");
-        log.error("🚨🚨🚨 THIS SHOULD APPEAR IN YOUR LOGS!!! 🚨🚨🚨");
-
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
 
         log.error("OAuth2User attributes: {}", oAuth2User.getAttributes());
@@ -48,41 +38,38 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         log.error("Extracted - Email: {}, FirstName: {}, LastName: {}", email, firstName, lastName);
 
         if (email == null) {
-            log.error("❌ EMAIL IS NULL! Cannot create user without email.");
+            log.error("EMAIL IS NULL! Cannot create user without email.");
             throw new OAuth2AuthenticationException("Email not provided by OAuth2 provider");
         }
 
         try {
             User user = findOrCreateUser(email, firstName, lastName);
-            log.error("✅ User processing completed successfully: {}", user.getEmail());
+            log.error("User processing completed successfully: {}", user.getEmail());
 
-            // Let's also verify the user was actually saved
             User verifyUser = userRepository.findByEmail(email).orElse(null);
             if (verifyUser != null) {
-                log.error("✅ VERIFICATION: User exists in database with ID: {}", verifyUser.getId());
+                log.info("VERIFICATION DONE: User exists in database with ID: {}", verifyUser.getId());
             } else {
-                log.error("❌ VERIFICATION FAILED: User was not saved to database!");
+                log.error("VERIFICATION FAILED: User was not saved to database!");
             }
 
         } catch (Exception e) {
-            log.error("❌ ERROR during user creation/lookup: ", e);
+            log.error("ERROR during user creation/lookup: ", e);
             throw new OAuth2AuthenticationException("Failed to process user");
         }
-
-        log.error("🚨🚨🚨 RETURNING OAUTH2USER FROM CUSTOM SERVICE 🚨🚨🚨");
         return oAuth2User;
     }
 
     private User findOrCreateUser(String email, String firstName, String lastName) {
-        log.error("🔍 Looking for existing user with email: {}", email);
+        log.error("Looking for existing user with email: {}", email);
 
         return userRepository.findByEmail(email)
                 .map(existingUser -> {
-                    log.error("✅ Found existing user: {} with ID: {}", email, existingUser.getId());
+                    log.error("Found existing user: {} with ID: {}", email, existingUser.getId());
                     return existingUser;
                 })
                 .orElseGet(() -> {
-                    log.error("🆕 User not found, creating new user: {}", email);
+                    log.error("User not found, creating new user: {}", email);
 
                     User newUser = new User();
                     newUser.setEmail(email);
@@ -90,17 +77,14 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                     newUser.setLastName(lastName != null ? lastName : "");
                     newUser.setAuthProvider(AuthProvider.GOOGLE);
                     newUser.setCreatedAt(LocalDateTime.now());
-                    // Don't set password - let it be null
-
-                    log.error("💾 About to save user: {}", newUser);
 
                     try {
                         User savedUser = userRepository.save(newUser);
-                        log.error("✅ Successfully saved new user with ID: {} and email: {}",
+                        log.info("Successfully saved new user with ID: {} and email: {}",
                                 savedUser.getId(), savedUser.getEmail());
                         return savedUser;
                     } catch (Exception e) {
-                        log.error("❌ FAILED to save user to database: ", e);
+                        log.error("FAILED to save user to database: ", e);
                         throw new RuntimeException("Failed to save user", e);
                     }
                 });
