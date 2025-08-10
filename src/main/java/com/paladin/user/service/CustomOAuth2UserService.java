@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 
@@ -20,6 +21,12 @@ import java.time.LocalDateTime;
 @Slf4j
 @Transactional
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+
+    @PostConstruct
+    public void init() {
+        log.error("🟢🟢🟢 CustomOAuth2UserService bean created and initialized! 🟢🟢🟢");
+        log.error("🟢🟢🟢 UserRepository: {} 🟢🟢🟢", userRepository);
+    }
 
     private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     private final UserRepository userRepository;
