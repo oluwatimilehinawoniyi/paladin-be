@@ -1,4 +1,8 @@
 spring:
+  session:
+    store-type: none
+    redis:
+      namespace: "paladin:session"
   mail:
     host: smtp.gmail.com
     port: 587
@@ -55,6 +59,10 @@ spring:
             client-name: Google
         provider:
           google:
+            token-uri: "https://oauth2.googleapis.com/token"
+            user-info-uri: "https://www.googleapis.com/oauth2/v2/userinfo"
+            jwk-set-uri: "https://www.googleapis.com/oauth2/v3/certs"
+            user-name-attribute: "email"
             authorization-uri: "https://accounts.google.com/o/oauth2/auth?access_type=offline&prompt=consent"
 
 aws:
@@ -74,3 +82,13 @@ debug: true
 app:
   frontend:
     url: http://localhost:5173
+
+server:
+  servlet:
+    session:
+      timeout: 24h
+      cookie:
+        max-age: 86400
+        http-only: true
+        secure: false
+        same-site: lax

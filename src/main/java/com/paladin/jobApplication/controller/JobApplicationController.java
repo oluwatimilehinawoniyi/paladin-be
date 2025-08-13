@@ -2,13 +2,17 @@ package com.paladin.jobApplication.controller;
 
 import com.paladin.dto.JobApplicationDTO;
 import com.paladin.dto.NewJobApplicationDTO;
+import com.paladin.dto.UserDTO;
 import com.paladin.enums.ApplicationStatus;
+import com.paladin.exceptions.UserNotFoundException;
 import com.paladin.jobApplication.service.impl.JobApplicationServiceImpl;
 import com.paladin.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -27,12 +31,12 @@ public class JobApplicationController {
     public ResponseEntity<Object> sendJobApplication(
             @RequestBody NewJobApplicationDTO request,
             Principal principal) {
-        UUID currentUserId = getCurrentUserId(principal);
+        UUID userId = getUserIdFromPrincipal(principal);
 
         JobApplicationDTO createdApplication =
                 jobApplicationServiceImpl.createAndSendJobApplication(
                         request,
-                        currentUserId
+                        userId
                 );
         return ResponseHandler.responseBuilder("Application successfully sent",
                 HttpStatus.OK, createdApplication);
@@ -41,11 +45,11 @@ public class JobApplicationController {
     @GetMapping("/me")
     public ResponseEntity<Object> getMyJobApplications(
             Principal principal) {
-        UUID currentUserId = getCurrentUserId(principal);
+        UUID userId = getUserIdFromPrincipal(principal);
 
         List<JobApplicationDTO> applications =
                 jobApplicationServiceImpl.getJobApplicationsByUserId(
-                        currentUserId);
+                        userId);
         return ResponseHandler.responseBuilder(
                 "Job applications successfully returned",
                 HttpStatus.OK,
@@ -57,11 +61,11 @@ public class JobApplicationController {
             @PathVariable UUID applicationId,
             @RequestBody ApplicationStatus newStatus,
             Principal principal) {
-        UUID currentUserId = getCurrentUserId(principal);
+        UUID userId = getUserIdFromPrincipal(principal);
 
         JobApplicationDTO updatedApplication =
                 jobApplicationServiceImpl.updateJobApplicationStatus(
-                        applicationId, newStatus, currentUserId);
+                        applicationId, newStatus, userId);
         return ResponseHandler.responseBuilder(
                 "Job application status successfully updated",
                 HttpStatus.OK,
@@ -69,7 +73,33 @@ public class JobApplicationController {
     }
 
     // Helper method to get user id
-    private UUID getCurrentUserId(Principal principal) {
-        return userService.getUserByEmail(principal.getName()).getId();
+    private UUID getUserIdFromPrincipal(Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("Unauthorized: No principal found");
+        }
+
+        if (principal instanceof OAuth2AuthenticationToken oauth2Token) {
+            OAuth2User oauth2User = oauth2Token.getPrincipal();
+            String userEmail = oauth2User.getAttribute("email");
+
+            if (userEmail == null) {
+                throw new RuntimeException("Email not found in OAuth2 user attributes");
+            }
+
+            UserDTO user = userService.getUserByEmail(userEmail);
+            if (user == null) {
+                throw new UserNotFoundException(
+                        "User not found for authenticated email: " + userEmail);
+            }
+            return user.getId();
+        }
+
+        String userEmail = principal.getName();
+        UserDTO user = userService.getUserByEmail(userEmail);
+        if (user == null) {
+            throw new UserNotFoundException(
+                    "User not found for authenticated principal: " + userEmail);
+        }
+        return user.getId();
     }
 }

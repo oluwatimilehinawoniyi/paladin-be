@@ -15,15 +15,14 @@ import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import static com.paladin.utils.FileUtils.extractKeyFromUrl;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
@@ -121,14 +120,8 @@ public class ProfileServiceImpl implements ProfileService {
                     "Unauthorized: This profile does not belong to you");
         }
 
-        if (profile.getCv() != null) {
-            String key = extractKeyFromUrl(profile.getCv().getUrl());
-            s3CVStorageService.deleteFile(key);
-            cVRepository.delete(profile.getCv());
-            profile.setCv(null);
-        }
-
         profileRepository.delete(profile);
+        log.info("Profile {} deleted successfully", profileId);
     }
 }
 

@@ -118,7 +118,7 @@ public class ProfileController {
         profileServiceImpl.deleteProfile(profileId, userId);
         return ResponseHandler.responseBuilder(
                 "Profile successfully deleted",
-                HttpStatus.NO_CONTENT, ""
+                HttpStatus.OK, Map.of("success", true)
         );
     }
 
