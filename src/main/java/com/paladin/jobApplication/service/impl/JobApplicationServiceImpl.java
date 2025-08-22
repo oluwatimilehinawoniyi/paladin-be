@@ -1,9 +1,7 @@
 package com.paladin.jobApplication.service.impl;
 
 import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.dto.JobApplicationDTO;
-import com.paladin.dto.JobApplicationEmailRequest;
-import com.paladin.dto.NewJobApplicationDTO;
+import com.paladin.dto.*;
 import com.paladin.enums.ApplicationStatus;
 import com.paladin.exceptions.CVNotFoundException;
 import com.paladin.exceptions.CannotSendMailException;
@@ -29,21 +27,21 @@ import java.util.stream.Collectors;
 public class JobApplicationServiceImpl implements JobApplicationService {
     private final JobApplicationRepository jobApplicationRepository;
     private final JobApplicationMapper jobApplicationMapper;
-    private final ProfileRepository profileRepository; // To link with profile
+    private final ProfileRepository profileRepository;
     private final EmailProviderService emailProviderService; // Changed from direct Gmail service
     private final CVServiceImpl cvService;
 
     /**
      * Creates and sends a job application.
      *
-     * @param dto    The DTO containing application details.
-     * @param userId The ID of the user.
+     * @param application The application details to be used.
+     * @param userId      The ID of the user.
      * @return The created JobApplicationDTO.
      */
     public JobApplicationDTO createAndSendJobApplication(
-            NewJobApplicationDTO dto,
+            NewJobApplicationDTO application,
             UUID userId) {
-        Profile profile = profileRepository.findById(dto.profileId)
+        Profile profile = profileRepository.findById(application.profileId)
                 .orElseThrow(() -> new ProfileNotFoundException("Profile not found"));
 
         if (!profile.getUser().getId().equals(userId)) {
@@ -65,14 +63,14 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
         byte[] cvData = cvService.downloadCV(profile.getCv().getId(), userId);
         JobApplicationEmailRequest emailRequest = new JobApplicationEmailRequest();
-        emailRequest.setToEmail(dto.getJobEmail());
-        emailRequest.setSubject(dto.getSubject());
-        emailRequest.setBodyText(dto.getBodyText());
+        emailRequest.setToEmail(application.getJobEmail());
+        emailRequest.setSubject(application.getSubject());
+        emailRequest.setBodyText(formatCoverLetterForEmail(application.getBodyText()));
         emailRequest.setCvData(cvData);
         emailRequest.setCvFileName(profile.getCv().getFileName());
         emailRequest.setCvContentType(profile.getCv().getContentType());
 
-        JobApplication jobApplication = jobApplicationMapper.toEntity(dto);
+        JobApplication jobApplication = jobApplicationMapper.toEntity(application);
         jobApplication.setProfile(profile);
         jobApplication.setSentAt(LocalDateTime.now());
         jobApplication.setStatus(ApplicationStatus.SENT);
@@ -118,5 +116,13 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
         application.setStatus(newStatus);
         return jobApplicationMapper.toDTO(jobApplicationRepository.save(application));
+    }
+
+    private String formatCoverLetterForEmail(String coverLetter) {
+        return coverLetter
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replaceAll("\\\\n", "\n")
+                .trim();
     }
 }

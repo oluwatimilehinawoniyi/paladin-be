@@ -1,10 +1,9 @@
 package com.paladin.jobApplication.controller;
 
-import com.paladin.dto.JobApplicationDTO;
-import com.paladin.dto.NewJobApplicationDTO;
-import com.paladin.dto.UserDTO;
+import com.paladin.dto.*;
 import com.paladin.enums.ApplicationStatus;
 import com.paladin.exceptions.UserNotFoundException;
+import com.paladin.jobApplication.service.impl.AIJobAnalysisServiceImpl;
 import com.paladin.jobApplication.service.impl.JobApplicationServiceImpl;
 import com.paladin.response.ResponseHandler;
 import com.paladin.user.service.UserService;
@@ -26,6 +25,8 @@ public class JobApplicationController {
 
     private final JobApplicationServiceImpl jobApplicationServiceImpl;
     private final UserService userService;
+    private final AIJobAnalysisServiceImpl aiJobAnalysisService;
+
 
     @PostMapping("/send")
     public ResponseEntity<Object> sendJobApplication(
@@ -54,6 +55,20 @@ public class JobApplicationController {
                 "Job applications successfully returned",
                 HttpStatus.OK,
                 applications);
+    }
+
+    @PostMapping("/analyze-application")
+    public ResponseEntity<Object> analyzeSmartApplication(
+            @RequestBody SmartAnalysisRequest request,
+            Principal principal
+    ) {
+        UUID userId = getUserIdFromPrincipal(principal);
+
+        AIJobAnalysisResponse response = aiJobAnalysisService.analyseJobApplication(request, userId);
+        return ResponseHandler.responseBuilder(
+                "Job applications successfully analysed",
+                HttpStatus.OK,
+                response);
     }
 
     @PatchMapping("/{applicationId}/status")
