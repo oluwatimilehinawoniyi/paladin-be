@@ -35,7 +35,7 @@ public class BuildComprehensivePrompt {
               },
               "coverLetter": "Write a powerful cover letter in exactly 3 paragraphs: (1) Opening with specific role interest and top qualification match, (2) 2-3 concrete examples of relevant experience from CV that address job requirements, (3) Strong closing with enthusiasm and call to action mentioning CV attachment. Maximum 180 words total. Address to 'Dear Hiring Manager' and sign with 'Best regards, [candidate full name from CV]'",
               "matchAnalysis": {
-                "overallMatchPercentage": 85,
+                "overallMatchPercentage": "Calculate actual percentage (0-100) based on skills match, experience alignment, and requirements fulfillment",
                 "matchingSkills": ["skills from CV that match JD requirements"],
                 "missingSkills": ["skills required in JD but NOT found in candidate's CV"],
                 "strengths": ["specific strengths from CV that align with job"],
