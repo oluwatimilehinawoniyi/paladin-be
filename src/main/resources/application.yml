@@ -1,4 +1,10 @@
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    postgresql:
+      transactional-lock: false
+
   session:
     store-type: none
     redis:
