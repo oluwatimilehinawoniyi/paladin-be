@@ -12,6 +12,7 @@ public class JobApplicationDTO {
     private String company;
     private String jobEmail;
     private String jobTitle;
+    private String profile;
     private ApplicationStatus status;
     private LocalDateTime sentAt;
 }

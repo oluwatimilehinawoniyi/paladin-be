@@ -58,6 +58,16 @@ public class CVController {
                 cvdto);
     }
 
+    @Operation(
+            summary = "Fetch a CV by its id",
+            description = "Fetch a CV file from S3 by its id and returns its",
+            responses = {
+                    @ApiResponse(responseCode = "200",
+                            description = "successful"),
+                    @ApiResponse(responseCode = "400",
+                            description = "Invalid")
+            }
+    )
     @GetMapping("/{cvId}")
     public ResponseEntity<Object> getCVById(
             @PathVariable UUID cvId,
@@ -68,6 +78,16 @@ public class CVController {
         return ResponseHandler.responseBuilder("CV successfully returned", HttpStatus.OK, cvdto);
     }
 
+    @Operation(
+            summary = "Fetch a CV",
+            description = "Fetches a CV file from S3 by its profile ID",
+            responses = {
+                    @ApiResponse(responseCode = "200",
+                            description = "Upload successful"),
+                    @ApiResponse(responseCode = "400",
+                            description = "Invalid")
+            }
+    )
     @GetMapping("/profile/{profileId}")
     public ResponseEntity<Object> getCVByProfileId(
             @PathVariable UUID profileId, Principal principal) {

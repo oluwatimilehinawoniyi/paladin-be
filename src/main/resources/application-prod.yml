@@ -1,0 +1,113 @@
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    postgresql:
+      transactional-lock: false
+
+  session:
+    store-type: none
+    redis:
+      namespace: "paladin:session"
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  application:
+    name: paladin
+
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/paladin}
+    name: ${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    database: postgresql
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: "${APP_BASE_URL}/oauth2/callback/google"
+            scope:
+              - email
+              - profile
+              - openid
+              - https://www.googleapis.com/auth/gmail.send
+            authorization-grant-type: "authorization_code"
+            client-name: Google
+        provider:
+          google:
+            token-uri: "https://oauth2.googleapis.com/token"
+            user-info-uri: "https://www.googleapis.com/oauth2/v2/userinfo"
+            jwk-set-uri: "https://www.googleapis.com/oauth2/v3/certs"
+            user-name-attribute: "email"
+            authorization-uri: "https://accounts.google.com/o/oauth2/auth?access_type=offline&prompt=consent"
+
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      chat:
+        options:
+          model: claude-3-haiku-20240307
+          max-tokens: 1500
+          temperature: 0.5
+
+aws:
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME:paladincvbucket}
+    region: ${AWS_REGION:us-east-1}
+  access-key-id: ${AWS_ACCESS_KEY_ID}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+
+# CHANGE: Less verbose logging in production
+logging:
+  level:
+    org:
+      springframework:
+        security: WARN
+    com.paladin: INFO
+debug: false
+
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 24h
+      cookie:
+        max-age: 86400
+        http-only: true
+        secure: ${SECURE_COOKIES:true}
+        same-site: lax

@@ -5,6 +5,7 @@ import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -27,6 +28,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final UserRepository userRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
 
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -44,7 +48,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             if (email != null) {
                 User user = userRepository.findByEmail(email).orElseGet(() -> {
-                    log.error("Creating new user: {}", email);
+                    log.info("Creating new user: {}", email);
 
                     User newUser = new User();
                     newUser.setEmail(email);
@@ -54,7 +58,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     newUser.setCreatedAt(LocalDateTime.now());
 
                     User savedUser = userRepository.save(newUser);
-                    log.error("Successfully created user: {}", savedUser.getId());
+                    log.info("Successfully created user: {}", savedUser.getId());
                     return savedUser;
                 });
 
@@ -79,14 +83,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     }
 
                     userRepository.save(user);
-                    log.error("Updated user tokens: {}", user.getId());
+                    log.info("Updated user tokens: {}", user.getId());
                 }
             }
         }
 
         log.info("OAuth2 authentication completed, redirecting to frontend");
 
-        String targetUrl = "http://localhost:5173/auth/callback";
+        String targetUrl = frontendUrl + "/auth/callback";
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

@@ -33,13 +33,20 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserRepository userRepository;
     private final CVServiceImpl cvService;
 
+    /**
+     * Creates a profile with CV attached.
+     *
+     * @param request The DTO containing the fields to create the profile.
+     * @param userId  The ID of the user.
+     * @return The created profile.
+     */
     @Transactional
     public ProfileResponseDTO createProfileWithCV(
             ProfileCreateRequestDTO request,
             UUID userId
     ) {
         User user = userRepository.findById(userId)
-                .orElseThrow(()-> new UserNotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
         Profile newProfile = profileMapper.toEntity(request);
         newProfile.setCreatedAt(LocalDateTime.now());
@@ -48,7 +55,7 @@ public class ProfileServiceImpl implements ProfileService {
         // save profile to get ID
         Profile savedProfile = profileRepository.save(newProfile);
 
-        if (request.getFile() != null && !request.getFile().isEmpty()){
+        if (request.getFile() != null && !request.getFile().isEmpty()) {
             CVDTO cvdto = cvService.uploadCV(request.getFile(), savedProfile.getId(), userId);
             CV cv = cvService.getCVByIdAsEntity(UUID.fromString(cvdto.getId().toString()));
             savedProfile.setCv(cv);
@@ -58,7 +65,12 @@ public class ProfileServiceImpl implements ProfileService {
         return profileMapper.toResponseDTO(savedProfile);
     }
 
-    // read profiles
+    /**
+     * Fetches the profiles created by a user.
+     *
+     * @param userId The ID of the user.
+     * @return The list of profiles created by the user.
+     */
     public List<ProfileSummaryDTO> getProfilesByUserId(UUID userId) {
         List<Profile> profiles = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new UserNotFoundException("Profile " +
@@ -68,7 +80,12 @@ public class ProfileServiceImpl implements ProfileService {
                 .toList();
     }
 
-    // get profile by ID
+    /**
+     * Fetches a single profile created by a user.
+     *
+     * @param userId The ID of the user.
+     * @return The profile created by the user.
+     */
     public ProfileResponseDTO getProfileById(UUID profileId, UUID userId) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new RuntimeException(
@@ -81,7 +98,13 @@ public class ProfileServiceImpl implements ProfileService {
         return profileMapper.toResponseDTO(profile);
     }
 
-    // update profile
+    /**
+     * Updates a profile of a user.
+     *
+     * @param userId The ID of the user.
+     * @param profileId The ID of the profile to be edited.
+     * @return The updated profile.
+     */
     @Transactional
     public ProfileResponseDTO updateProfile(
             UUID userId,
@@ -109,7 +132,12 @@ public class ProfileServiceImpl implements ProfileService {
         return profileMapper.toResponseDTO(updatedProfile);
     }
 
-    // delete profile
+    /**
+     * Deletes a profile of a user.
+     *
+     * @param userId The ID of the user.
+     * @param profileId The ID of the profile to be deleted.
+     */
     @Transactional
     public void deleteProfile(UUID profileId, UUID userId) {
         Profile profile = profileRepository.findById(profileId)
