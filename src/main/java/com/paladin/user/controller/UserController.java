@@ -1,8 +1,8 @@
 package com.paladin.user.controller;
 
-import com.paladin.dto.UserDTO;
-import com.paladin.mappers.UserMapper;
-import com.paladin.response.ResponseHandler;
+import com.paladin.common.dto.UserDTO;
+import com.paladin.common.mappers.UserMapper;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import com.paladin.user.service.UserService;

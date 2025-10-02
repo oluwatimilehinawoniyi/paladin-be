@@ -1,16 +1,18 @@
 package com.paladin.jobApplication.service.impl;
 
+import com.paladin.common.dto.JobApplicationDTO;
+import com.paladin.common.dto.JobApplicationEmailRequest;
+import com.paladin.common.dto.NewJobApplicationDTO;
 import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.dto.*;
-import com.paladin.enums.ApplicationStatus;
-import com.paladin.exceptions.CVNotFoundException;
-import com.paladin.exceptions.CannotSendMailException;
-import com.paladin.exceptions.ProfileNotFoundException;
-import com.paladin.exceptions.UnauthorizedAccessException;
+import com.paladin.common.enums.ApplicationStatus;
+import com.paladin.common.exceptions.CVNotFoundException;
+import com.paladin.common.exceptions.CannotSendMailException;
+import com.paladin.common.exceptions.ProfileNotFoundException;
+import com.paladin.common.exceptions.UnauthorizedAccessException;
 import com.paladin.jobApplication.JobApplication;
 import com.paladin.jobApplication.repository.JobApplicationRepository;
 import com.paladin.jobApplication.service.JobApplicationService;
-import com.paladin.mappers.JobApplicationMapper;
+import com.paladin.common.mappers.JobApplicationMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.repository.ProfileRepository;
 import com.paladin.user.User;

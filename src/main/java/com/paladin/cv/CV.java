@@ -1,7 +1,7 @@
 package com.paladin.cv;
 
 import com.paladin.s3_CV_Storage.S3CVStorageService;
-import com.paladin.utils.ApplicationContextProvider;
+import com.paladin.common.utils.ApplicationContextProvider;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static com.paladin.utils.FileUtils.extractKeyFromUrl;
+import static com.paladin.common.utils.FileUtils.extractKeyFromUrl;
 
 @Entity
 @Data

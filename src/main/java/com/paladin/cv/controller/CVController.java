@@ -1,10 +1,10 @@
 package com.paladin.cv.controller;
 
 import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.dto.CVDTO;
-import com.paladin.dto.UserDTO;
-import com.paladin.exceptions.UserNotFoundException;
-import com.paladin.response.ResponseHandler;
+import com.paladin.common.dto.CVDTO;
+import com.paladin.common.dto.UserDTO;
+import com.paladin.common.exceptions.UserNotFoundException;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

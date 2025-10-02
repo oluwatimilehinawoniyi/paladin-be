@@ -3,12 +3,12 @@ package com.paladin.cv.service.impl;
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
 import com.paladin.cv.service.CVService;
-import com.paladin.dto.CVDTO;
-import com.paladin.exceptions.CVNotFoundException;
-import com.paladin.exceptions.InvalidFileException;
-import com.paladin.exceptions.ProfileNotFoundException;
-import com.paladin.exceptions.UnauthorizedAccessException;
-import com.paladin.mappers.CVMapper;
+import com.paladin.common.dto.CVDTO;
+import com.paladin.common.exceptions.CVNotFoundException;
+import com.paladin.common.exceptions.InvalidFileException;
+import com.paladin.common.exceptions.ProfileNotFoundException;
+import com.paladin.common.exceptions.UnauthorizedAccessException;
+import com.paladin.common.mappers.CVMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.repository.ProfileRepository;
 import com.paladin.s3_CV_Storage.S3CVStorageService;
@@ -21,7 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static com.paladin.utils.FileUtils.extractKeyFromUrl;
+import static com.paladin.common.utils.FileUtils.extractKeyFromUrl;
 
 @Service
 @RequiredArgsConstructor

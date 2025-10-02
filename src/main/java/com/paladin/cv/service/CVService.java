@@ -1,7 +1,7 @@
 package com.paladin.cv.service;
 
 import com.paladin.cv.CV;
-import com.paladin.dto.CVDTO;
+import com.paladin.common.dto.CVDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;

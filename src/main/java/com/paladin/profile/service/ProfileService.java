@@ -1,10 +1,9 @@
 package com.paladin.profile.service;
 
-import com.paladin.dto.ProfileCreateRequestDTO;
-import com.paladin.dto.ProfileResponseDTO;
-import com.paladin.dto.ProfileSummaryDTO;
-import com.paladin.dto.ProfileUpdateRequestDTO;
-import org.springframework.web.multipart.MultipartFile;
+import com.paladin.common.dto.ProfileCreateRequestDTO;
+import com.paladin.common.dto.ProfileResponseDTO;
+import com.paladin.common.dto.ProfileSummaryDTO;
+import com.paladin.common.dto.ProfileUpdateRequestDTO;
 
 import java.util.List;
 import java.util.UUID;

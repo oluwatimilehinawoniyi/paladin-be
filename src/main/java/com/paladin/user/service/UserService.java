@@ -1,8 +1,8 @@
 package com.paladin.user.service;
 
 
-import com.paladin.dto.UserDTO;
-import com.paladin.mappers.UserMapper;
+import com.paladin.common.dto.UserDTO;
+import com.paladin.common.mappers.UserMapper;
 import com.paladin.profile.Profile;
 import com.paladin.s3_CV_Storage.S3CVStorageService;
 import com.paladin.user.User;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-import static com.paladin.utils.FileUtils.extractKeyFromUrl;
+import static com.paladin.common.utils.FileUtils.extractKeyFromUrl;
 
 @Slf4j
 @Service

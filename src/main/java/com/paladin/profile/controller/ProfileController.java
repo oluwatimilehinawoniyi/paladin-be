@@ -1,9 +1,9 @@
 package com.paladin.profile.controller;
 
-import com.paladin.dto.*;
-import com.paladin.exceptions.UserNotFoundException;
+import com.paladin.common.dto.*;
+import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.profile.service.impl.ProfileServiceImpl;
-import com.paladin.response.ResponseHandler;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,8 @@
 package com.paladin.jobApplication.service.impl;
 
 import com.paladin.auth.interfaces.EmailProvider;
-import com.paladin.dto.JobApplicationEmailRequest;
-import com.paladin.enums.AuthProvider;
+import com.paladin.common.dto.JobApplicationEmailRequest;
+import com.paladin.common.enums.AuthProvider;
 import com.paladin.user.User;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;

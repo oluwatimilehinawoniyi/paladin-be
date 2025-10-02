@@ -9,8 +9,8 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.model.Message;
 import com.paladin.auth.interfaces.EmailProvider;
 import com.paladin.config.GoogleOAuthConfig;
-import com.paladin.dto.JobApplicationEmailRequest;
-import com.paladin.enums.AuthProvider;
+import com.paladin.common.dto.JobApplicationEmailRequest;
+import com.paladin.common.enums.AuthProvider;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import jakarta.mail.MessagingException;
@@ -30,7 +30,6 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.UUID;
 
 
 @Service

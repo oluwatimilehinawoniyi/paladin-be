@@ -40,7 +40,7 @@ spring:
 
   jpa:
     database: postgresql
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: update
     properties:
@@ -93,7 +93,6 @@ logging:
     org:
       springframework:
         security: DEBUG
-debug: true
 
 app:
   frontend:

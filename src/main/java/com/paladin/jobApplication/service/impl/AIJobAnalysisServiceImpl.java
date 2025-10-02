@@ -2,12 +2,12 @@ package com.paladin.jobApplication.service.impl;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.paladin.common.dto.*;
 import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.dto.*;
-import com.paladin.exceptions.CVNotFoundException;
+import com.paladin.common.exceptions.CVNotFoundException;
 import com.paladin.profile.service.ProfileService;
-import com.paladin.utils.BuildComprehensivePrompt;
-import com.paladin.utils.PDFTextExtractor;
+import com.paladin.common.utils.BuildComprehensivePrompt;
+import com.paladin.common.utils.PDFTextExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

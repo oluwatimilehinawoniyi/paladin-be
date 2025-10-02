@@ -1,8 +1,8 @@
 package com.paladin.jobApplication.service;
 
-import com.paladin.dto.JobApplicationDTO;
-import com.paladin.dto.NewJobApplicationDTO;
-import com.paladin.enums.ApplicationStatus;
+import com.paladin.common.dto.JobApplicationDTO;
+import com.paladin.common.dto.NewJobApplicationDTO;
+import com.paladin.common.enums.ApplicationStatus;
 
 import java.util.List;
 import java.util.UUID;

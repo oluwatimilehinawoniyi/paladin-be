@@ -1,6 +1,6 @@
 package com.paladin.user;
 
-import com.paladin.enums.AuthProvider;
+import com.paladin.common.enums.AuthProvider;
 import com.paladin.profile.Profile;
 import jakarta.persistence.*;
 import lombok.Data;

@@ -1,9 +1,9 @@
 package com.paladin.coverLetter.controller;
 
 import com.paladin.coverLetter.service.impl.CoverLetterServiceImpl;
-import com.paladin.dto.UserDTO;
-import com.paladin.exceptions.UserNotFoundException;
-import com.paladin.response.ResponseHandler;
+import com.paladin.common.dto.UserDTO;
+import com.paladin.common.exceptions.UserNotFoundException;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

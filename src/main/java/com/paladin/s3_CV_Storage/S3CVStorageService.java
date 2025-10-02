@@ -1,8 +1,8 @@
 package com.paladin.s3_CV_Storage;
 
-import com.paladin.exceptions.s3.S3DeleteException;
-import com.paladin.exceptions.s3.S3DownloadException;
-import com.paladin.exceptions.s3.S3UploadException;
+import com.paladin.common.exceptions.s3.S3DeleteException;
+import com.paladin.common.exceptions.s3.S3DownloadException;
+import com.paladin.common.exceptions.s3.S3UploadException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

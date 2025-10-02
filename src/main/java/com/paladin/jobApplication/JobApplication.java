@@ -1,7 +1,6 @@
 package com.paladin.jobApplication;
 
-import com.paladin.enums.ApplicationStatus;
-import com.paladin.cv.CV;
+import com.paladin.common.enums.ApplicationStatus;
 import com.paladin.profile.Profile;
 import jakarta.persistence.*;
 import lombok.Data;

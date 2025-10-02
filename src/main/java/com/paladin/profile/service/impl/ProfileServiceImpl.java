@@ -1,12 +1,12 @@
 package com.paladin.profile.service.impl;
 
+import com.paladin.common.dto.*;
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
 import com.paladin.cv.service.impl.CVServiceImpl;
-import com.paladin.dto.*;
-import com.paladin.exceptions.CVNotFoundException;
-import com.paladin.exceptions.UserNotFoundException;
-import com.paladin.mappers.ProfileMapper;
+import com.paladin.common.exceptions.CVNotFoundException;
+import com.paladin.common.exceptions.UserNotFoundException;
+import com.paladin.common.mappers.ProfileMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.repository.ProfileRepository;
 import com.paladin.profile.service.ProfileService;

@@ -1,11 +1,11 @@
 package com.paladin.jobApplication.controller;
 
-import com.paladin.dto.*;
-import com.paladin.enums.ApplicationStatus;
-import com.paladin.exceptions.UserNotFoundException;
+import com.paladin.common.dto.*;
+import com.paladin.common.enums.ApplicationStatus;
+import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.jobApplication.service.impl.AIJobAnalysisServiceImpl;
 import com.paladin.jobApplication.service.impl.JobApplicationServiceImpl;
-import com.paladin.response.ResponseHandler;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

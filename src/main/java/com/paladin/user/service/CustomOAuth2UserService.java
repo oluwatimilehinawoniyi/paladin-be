@@ -1,6 +1,6 @@
 package com.paladin.user.service;
 
-import com.paladin.enums.AuthProvider;
+import com.paladin.common.enums.AuthProvider;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

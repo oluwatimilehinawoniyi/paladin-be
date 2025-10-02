@@ -34,7 +34,7 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/paladin}
+    url: ${DATABASE_URL}
     name: ${DB_NAME}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
@@ -83,8 +83,8 @@ spring:
 
 aws:
   s3:
-    bucket-name: ${AWS_S3_BUCKET_NAME:paladincvbucket}
-    region: ${AWS_REGION:us-east-1}
+    bucket-name: ${AWS_S3_BUCKET_NAME}
+    region: ${AWS_REGION}
   access-key-id: ${AWS_ACCESS_KEY_ID}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY}
 
@@ -99,15 +99,15 @@ debug: false
 
 app:
   frontend:
-    url: ${FRONTEND_URL:http://localhost:5173}
+    url: ${FRONTEND_URL}
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT}
   servlet:
     session:
       timeout: 24h
       cookie:
         max-age: 86400
         http-only: true
-        secure: ${SECURE_COOKIES:true}
+        secure: ${SECURE_COOKIES}
         same-site: lax
