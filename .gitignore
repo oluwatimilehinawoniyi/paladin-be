@@ -36,4 +36,8 @@ build/
 db_cluster-04-03-2024@21-16-23.backup.gzZone.Identifier
 db_cluster-04-03-2024@21-16-23.backup.gz
 TODO.md
-*.env
+.env
+.env.local
+.env.production
+.env.*.local
+set-fly-secrets.sh

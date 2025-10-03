@@ -7,7 +7,6 @@ spring:
 
   session:
     store-type: none
-
   mail:
     host: smtp.gmail.com
     port: 587
@@ -26,30 +25,25 @@ spring:
 
   devtools:
     restart:
-      enabled: false
+      enabled: true
     livereload:
-      enabled: false
+      enabled: true
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DATABASE_URL}
+    url: jdbc:postgresql://localhost:5432/paladin
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 30000
-      idle-timeout: 600000
 
   jpa:
     database: postgresql
-    show-sql: false
+    show-sql: true
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
+        format_sql: true
 
   security:
     oauth2:
@@ -58,7 +52,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: "${APP_BASE_URL}/oauth2/callback/google"
+            redirect-uri: "{baseUrl}/oauth2/callback/google"
             scope:
               - email
               - profile
@@ -83,10 +77,11 @@ spring:
           max-tokens: 1500
           temperature: 0.5
 
+
 aws:
   s3:
-    bucket-name: ${AWS_S3_BUCKET_NAME}
-    region: ${AWS_REGION}
+    bucket-name: paladincvbucket
+    region: us-east-1
   access-key-id: ${AWS_ACCESS_KEY_ID}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY}
 
@@ -94,22 +89,22 @@ logging:
   level:
     org:
       springframework:
-        security: WARN
-    com.paladin: INFO
+        security: DEBUG
+    com.paladin: DEBUG
 
 app:
   frontend:
-    url: ${FRONTEND_URL}
+    url: http://localhost:5173
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-origins: http://localhost:5173
 
 server:
-  port: ${PORT:8080}
+  port: 8080
   servlet:
     session:
       timeout: 24h
       cookie:
         max-age: 86400
         http-only: true
-        secure: true
-        same-site: none
+        secure: false
+        same-site: lax
