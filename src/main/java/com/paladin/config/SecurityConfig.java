@@ -33,7 +33,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
 
-    @Value("${app.frontend.url}")
+    @Value("${app.cors.allowed-origins}")
     private String frontendUrl;
 
     @Bean
