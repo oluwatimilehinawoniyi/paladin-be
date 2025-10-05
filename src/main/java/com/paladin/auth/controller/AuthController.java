@@ -55,8 +55,8 @@ public class AuthController {
         ));
     }
 
-    @GetMapping("/callback")
-    public void handleOAuthCallback(HttpServletResponse response) throws IOException {
-        response.sendRedirect("http://localhost:5173/auth/callback");
-    }
+//    @GetMapping("/callback")
+//    public void handleOAuthCallback(HttpServletResponse response) throws IOException {
+//        response.sendRedirect("http://localhost:5173/auth/callback");
+//    }
 }
