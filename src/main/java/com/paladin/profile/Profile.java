@@ -6,6 +6,8 @@ import com.paladin.jobApplication.JobApplication;
 import com.paladin.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,7 +27,8 @@ public class Profile {
     @Column(nullable = false)
     private String summary;
 
-    @ElementCollection
+    @Column(name = "skills", columnDefinition = "text[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
     private List<String> skills = new ArrayList<>();
 
     @ManyToOne
