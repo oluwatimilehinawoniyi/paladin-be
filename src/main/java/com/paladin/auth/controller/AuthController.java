@@ -32,19 +32,6 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserRepository userRepository;
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Logged out successfully",
-                "httpStatus", "OK"
-        ));
-    }
-
     /**
      * Get current authenticated user information
      */
