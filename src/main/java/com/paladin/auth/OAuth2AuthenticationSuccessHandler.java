@@ -1,5 +1,6 @@
 package com.paladin.auth;
 
+import com.paladin.auth.services.JwtService;
 import com.paladin.common.enums.AuthProvider;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
@@ -7,19 +8,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 
+/**
+ * OAuth2 Success Handler - Updated for JWT
+ * Generates JWT tokens after successful Google OAuth and redirects to frontend with tokens
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +36,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final UserRepository userRepository;
     private final OAuth2AuthorizedClientService authorizedClientService;
+    private final JwtService jwtService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -47,6 +57,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String lastName = oauth2User.getAttribute("family_name");
 
             if (email != null) {
+                // Find or create user in database
                 User user = userRepository.findByEmail(email).orElseGet(() -> {
                     log.info("Creating new user: {}", email);
 
@@ -79,18 +90,40 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
                     if (authorizedClient.getRefreshToken() != null) {
                         user.setRefreshToken(authorizedClient.getRefreshToken().getTokenValue());
-                        log.info("Refresh token updated for user: {}", email);
+                        log.info("Google OAuth refresh token updated for user: {}", email);
                     }
 
                     userRepository.save(user);
-                    log.info("Updated user tokens: {}", user.getId());
+                    log.info("Updated user Google OAuth tokens: {}", user.getId());
                 }
+
+                UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+                        .username(email)
+                        .password("")
+                        .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
+                        .build();
+
+                String accessToken = jwtService.generateAccessToken(userDetails, user.getId().toString());
+                String refreshToken = jwtService.generateRefreshToken(userDetails, user.getId().toString());
+
+                log.info("Generated JWT tokens for user: {}", email);
+
+                String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
+                        .queryParam("accessToken", accessToken)
+                        .queryParam("refreshToken", refreshToken)
+                        .build()
+                        .toUriString();
+
+                log.info("OAuth2 authentication completed, redirecting to frontend with JWT tokens");
+                getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            } else {
+                log.error("Email not found in OAuth2 response");
+                String errorUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/login")
+                        .queryParam("error", "oauth_failed")
+                        .build()
+                        .toUriString();
+                getRedirectStrategy().sendRedirect(request, response, errorUrl);
             }
         }
-
-        log.info("OAuth2 authentication completed, redirecting to frontend");
-
-        String targetUrl = frontendUrl + "/auth/callback";
-        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

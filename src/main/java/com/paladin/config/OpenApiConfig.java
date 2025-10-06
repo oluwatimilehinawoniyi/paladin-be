@@ -24,7 +24,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Paladin API")
-                        .version("1.0.0")
+                        .version("2.0.0")
                         .description("""
                                 ## AI-Powered Job Application Assistant API
                                 
@@ -33,7 +33,7 @@ public class OpenApiConfig {
                                 with automated email submission.
                                 
                                 ### Key Features:
-                                - **OAuth2 Authentication** with Google
+                                - **JWT Authentication** with OAuth2 Google Sign-In
                                 - **Profile Management** with multiple professional profiles
                                 - **CV Storage** using AWS S3
                                 - **AI Job Analysis** powered by Claude AI
@@ -41,11 +41,17 @@ public class OpenApiConfig {
                                 - **Application Tracking** with status management
                                 
                                 ### Authentication:
-                                This API uses OAuth2 authentication with Google. To authenticate:
-                                1. Navigate to `/oauth2/authorization/google`
-                                2. Complete Google OAuth flow
-                                3. Session cookie will be set automatically
-                                4. Use the session for subsequent API calls
+                                This API uses JWT (JSON Web Tokens) for authentication. To authenticate:
+                                1. Navigate to `/oauth2/authorization/google` to sign in with Google
+                                2. After successful OAuth, you'll receive JWT tokens
+                                3. Include the access token in the Authorization header for all API calls:
+                                   `Authorization: Bearer <your_access_token>`
+                                4. When the access token expires, use the refresh token at `/api/auth/refresh`
+                                
+                                ### Token Management:
+                                - Access tokens expire after 30 minutes
+                                - Refresh tokens expire after 30 days
+                                - Use `/api/auth/refresh` to get new tokens
                                 
                                 ### Rate Limits:
                                 - AI Analysis: Limited by Anthropic API quotas
@@ -56,7 +62,7 @@ public class OpenApiConfig {
                                 All endpoints return standardized error responses with:
                                 - `message`: Human-readable error description
                                 - `httpStatus`: HTTP status code
-                                - `timestamp`: Error occurrence time
+                                - `timestamp`: Error occurrence time (if applicable)
                                 """)
                         .contact(new Contact()
                                 .name("Paladin Support")
@@ -70,15 +76,15 @@ public class OpenApiConfig {
                                 .url(serverUrl)
                                 .description("Development Server"),
                         new Server()
-                                .url("https://paladin-be-8eieva.fly.dev/")
+                                .url("https://paladin-be-8eieva.fly.dev")
                                 .description("Production Server")))
-                .addSecurityItem(new SecurityRequirement().addList("Session Cookie"))
+                .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new io.swagger.v3.oas.models.Components()
-                        .addSecuritySchemes("Session Cookie",
+                        .addSecuritySchemes("Bearer Authentication",
                                 new SecurityScheme()
-                                        .type(SecurityScheme.Type.APIKEY)
-                                        .in(SecurityScheme.In.COOKIE)
-                                        .name("JSESSIONID")
-                                        .description("Session-based authentication using cookies set by OAuth2 flow")));
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("Enter your JWT token in the format: Bearer <token>")));
     }
 }
