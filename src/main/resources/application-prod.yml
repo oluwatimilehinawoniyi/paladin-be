@@ -3,6 +3,9 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
+    validate-on-migrate: true
+    clean-disabled: false
+    locations: classpath:db/migration
     postgresql:
       transactional-lock: false
 
