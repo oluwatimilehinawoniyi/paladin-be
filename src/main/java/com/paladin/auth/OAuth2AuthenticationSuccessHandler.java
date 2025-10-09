@@ -108,11 +108,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
                 log.info("Generated JWT tokens for user: {}", email);
 
-                String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
-                        .queryParam("accessToken", accessToken)
-                        .queryParam("refreshToken", refreshToken)
-                        .build()
-                        .toUriString();
+//                String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
+//                        .queryParam("accessToken", accessToken)
+//                        .queryParam("refreshToken", refreshToken)
+//                        .build()
+//                        .toUriString();
+
+                String targetUrl = frontendUrl + "/auth/callback#accessToken=" + accessToken + "&refreshToken=" + refreshToken;
 
                 log.info("OAuth2 authentication completed, redirecting to frontend with JWT tokens");
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);
