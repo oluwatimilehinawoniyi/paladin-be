@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Request Detail - Paladin Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+        }
+
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .navbar h1 {
+            color: #ff4d00;
+            font-size: 20px;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .navbar-right span {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .navbar-right a {
+            color: #ff4d00;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid #ff4d00;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .navbar-right a:hover {
+            background: #ff4d00;
+            color: white;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #ff4d00;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .request-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .request-header {
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .request-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .request-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .vote-badge {
+            color: #ff4d00;
+            font-weight: 600;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-under_review { background: #cfe2ff; color: #084298; }
+        .status-in_progress { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d1e7dd; color: #0f5132; }
+        .status-rejected { background: #f8d7da; color: #842029; }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .section-content {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .update-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: #ff4d00;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-update {
+            background: #ff4d00;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-update:hover {
+            background: #e04400;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #0c5460;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <h1>🛡️ Paladin Admin Panel</h1>
+    <div class="navbar-right">
+        <span>👤 <span th:text="${adminUsername}">Admin</span></span>
+        <a href="/admin/logout">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <a href="/admin/dashboard" class="back-link">← Back to Dashboard</a>
+
+    <div class="request-card">
+        <div class="request-header">
+            <h1 class="request-title" th:text="${request.title}">Feature Request Title</h1>
+
+            <div class="request-meta">
+                <div class="meta-item">
+                    <span class="vote-badge">🔥 <span th:text="${request.voteCount}">0</span> votes</span>
+                </div>
+                <div class="meta-item">
+                    📧 <span th:text="${request.userEmail}">user@example.com</span>
+                </div>
+                <div class="meta-item">
+                    📅 <span th:text="${#temporals.format(request.createdAt, 'MMM dd, yyyy')}">Date</span>
+                </div>
+                <div class="meta-item">
+                        <span class="status"
+                              th:classappend="'status-' + ${#strings.toLowerCase(request.status)}"
+                              th:text="${request.statusDisplayName}">
+                            Status
+                        </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Category</div>
+            <div class="section-content" th:text="${request.categoryDisplayName}">Category</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Description</div>
+            <div class="section-content" th:text="${request.description}">
+                Description text will appear here...
+            </div>
+        </div>
+
+        <div class="section" th:if="${request.adminResponse}">
+            <div class="section-title">Admin Response</div>
+            <div class="section-content" th:text="${request.adminResponse}">
+                Admin response will appear here...
+            </div>
+        </div>
+    </div>
+
+    <div class="request-card">
+        <h2 style="margin-bottom: 20px; color: #333;">Update Status</h2>
+
+        <form th:action="@{/admin/feature-requests/{id}/update-status(id=${request.id})}"
+              method="post"
+              class="update-form">
+
+            <div class="form-group">
+                <label for="status">Status *</label>
+                <select id="status" name="status" required>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s}"
+                            th:text="${s.displayName}"
+                            th:selected="${s == request.status}">
+                        Status
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="adminResponse">Admin Response (Optional)</label>
+                <textarea id="adminResponse"
+                          name="adminResponse"
+                          placeholder="Add a note to the user about this status change..."
+                          th:text="${request.adminResponse}"></textarea>
+            </div>
+
+            <button type="submit" class="btn-update">Update Status & Notify User</button>
+
+            <div class="info-box">
+                <p>💡 <strong>Note:</strong> Status changes are currently silent. Notification system will be added in
+                    Phase 2.</p>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
