@@ -99,6 +99,7 @@ logging:
     org:
       springframework:
         security: WARN
+      flywaydb: DEBUG
     com.paladin: INFO
 
 app:
