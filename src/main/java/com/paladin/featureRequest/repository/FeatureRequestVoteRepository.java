@@ -4,6 +4,7 @@ import com.paladin.featureRequest.FeatureRequestVote;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,4 +28,6 @@ public interface FeatureRequestVoteRepository extends JpaRepository<FeatureReque
             UUID featureRequestId,
             UUID userId
     );
+
+    List<FeatureRequestVote> findByFeatureRequestId(UUID featureRequestId);
 }

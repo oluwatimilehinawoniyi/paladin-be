@@ -3,11 +3,8 @@ package com.paladin.auth.controller;
 import com.paladin.auth.services.JwtService;
 import com.paladin.common.dto.TokenRefreshRequestDTO;
 import com.paladin.common.dto.TokenRefreshResponseDTO;
-import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,7 +13,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
@@ -46,7 +42,7 @@ public class AuthController {
 
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", user.getId().toString());

@@ -3,7 +3,6 @@ package com.paladin.cv.controller;
 import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.common.dto.CVDTO;
 import com.paladin.common.dto.UserDTO;
-import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -162,7 +161,7 @@ public class CVController {
 
             UserDTO user = userService.getUserByEmail(userEmail);
             if (user == null) {
-                throw new UserNotFoundException(
+                throw new NotFoundException(
                         "User not found for authenticated email: " + userEmail);
             }
             return user.getId();
@@ -171,7 +170,7 @@ public class CVController {
         String userEmail = principal.getName();
         UserDTO user = userService.getUserByEmail(userEmail);
         if (user == null) {
-            throw new UserNotFoundException(
+            throw new NotFoundException(
                     "User not found for authenticated principal: " + userEmail);
         }
         return user.getId();

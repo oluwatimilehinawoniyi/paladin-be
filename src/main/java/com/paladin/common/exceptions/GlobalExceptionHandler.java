@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler({
-            UserNotFoundException.class,
+            NotFoundException.class,
             ProfileNotFoundException.class,
             CVNotFoundException.class
     })
