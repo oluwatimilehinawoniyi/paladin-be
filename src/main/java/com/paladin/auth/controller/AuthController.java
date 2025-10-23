@@ -3,6 +3,7 @@ package com.paladin.auth.controller;
 import com.paladin.auth.services.JwtService;
 import com.paladin.common.dto.TokenRefreshRequestDTO;
 import com.paladin.common.dto.TokenRefreshResponseDTO;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

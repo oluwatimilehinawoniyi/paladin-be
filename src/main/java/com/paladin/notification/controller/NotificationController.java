@@ -105,7 +105,7 @@ public class NotificationController {
         return ResponseHandler.responseBuilder(
                 "Notification marked as read",
                 HttpStatus.OK,
-                null
+                Map.of("message", "success")
         );
     }
 

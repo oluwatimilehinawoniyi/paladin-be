@@ -1,5 +1,6 @@
 package com.paladin.cv.controller;
 
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.common.dto.CVDTO;
 import com.paladin.common.dto.UserDTO;

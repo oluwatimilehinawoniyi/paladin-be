@@ -1,5 +1,6 @@
 package com.paladin.coverLetter.controller;
 
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.coverLetter.service.impl.CoverLetterServiceImpl;
 import com.paladin.common.dto.UserDTO;
 import com.paladin.common.response.ResponseHandler;

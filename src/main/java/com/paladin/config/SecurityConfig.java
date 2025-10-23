@@ -75,6 +75,7 @@ public class SecurityConfig {
                                 .requestMatchers(
                                         "/oauth2/**",
                                         "/api/auth/me",
+                                        "/api/auth/refresh",
                                         "/api/auth/logout",
                                         "/actuator/health",
                                         "/error",
@@ -106,10 +107,23 @@ public class SecurityConfig {
 
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers",
+                "X-Requested-With",
+                "X-XSRF-TOKEN"
+        ));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
-        config.setExposedHeaders(List.of("Authorization"));
+        config.setExposedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Total-Count"
+        ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

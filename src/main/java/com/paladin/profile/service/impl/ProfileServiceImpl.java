@@ -1,6 +1,7 @@
 package com.paladin.profile.service.impl;
 
 import com.paladin.common.dto.*;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
 import com.paladin.cv.service.impl.CVServiceImpl;
