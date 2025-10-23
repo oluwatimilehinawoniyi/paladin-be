@@ -1,8 +1,8 @@
 package com.paladin.coverLetter.controller;
 
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.coverLetter.service.impl.CoverLetterServiceImpl;
 import com.paladin.common.dto.UserDTO;
-import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +56,7 @@ public class CoverletterTemplateController {
 
             UserDTO user = userService.getUserByEmail(userEmail);
             if (user == null) {
-                throw new UserNotFoundException(
+                throw new NotFoundException(
                         "User not found for authenticated email: " + userEmail);
             }
             return;
@@ -65,7 +65,7 @@ public class CoverletterTemplateController {
         String userEmail = principal.getName();
         UserDTO user = userService.getUserByEmail(userEmail);
         if (user == null) {
-            throw new UserNotFoundException(
+            throw new NotFoundException(
                     "User not found for authenticated principal: " + userEmail);
         }
     }

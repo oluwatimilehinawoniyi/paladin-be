@@ -2,12 +2,15 @@ package com.paladin.featureRequest.service;
 
 import com.paladin.common.dto.*;
 import com.paladin.common.enums.FeatureRequestStatus;
+import com.paladin.common.enums.NotificationType;
 import com.paladin.common.exceptions.FeatureRequestNotFoundException;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.common.exceptions.UnauthorizedAccessException;
 import com.paladin.featureRequest.FeatureRequest;
 import com.paladin.featureRequest.FeatureRequestVote;
 import com.paladin.featureRequest.repository.FeatureRequestRepository;
 import com.paladin.featureRequest.repository.FeatureRequestVoteRepository;
+import com.paladin.notification.service.NotificationService;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +24,20 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static com.paladin.common.EntityTypes.FEATURE_REQUEST;
+import static com.paladin.common.EntityTypes.SYSTEM;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class FeatureRequestService {
 
     private final FeatureRequestRepository featureRequestRepository;
     private final FeatureRequestVoteRepository voteRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    @Transactional
     public FeatureRequestDTO createFeatureRequest(FeatureRequestCreateDTO dto, UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -46,6 +53,16 @@ public class FeatureRequestService {
                 .build();
 
         FeatureRequest saved = featureRequestRepository.save(request);
+
+        notificationService.notifyUser(
+                userId,
+                NotificationType.STATUS_UPDATE,
+                "Feature request submitted!",
+                "We've received your request: '" + dto.getTitle() + "'. We'll review it soon!",
+                saved.getId(),
+                FEATURE_REQUEST
+        );
+
         return toDTO(saved, 0L, false);
     }
 
@@ -95,7 +112,6 @@ public class FeatureRequestService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public FeatureRequestDTO updateFeatureRequest(UUID id, FeatureRequestUpdateDTO dto, UUID userId) {
         FeatureRequest request = featureRequestRepository.findById(id)
                 .orElseThrow(() -> new FeatureRequestNotFoundException("Feature request not found"));
@@ -119,7 +135,6 @@ public class FeatureRequestService {
         return toDTO(updated, voteCount, false);
     }
 
-    @Transactional
     public void deleteFeatureRequest(UUID id, UUID userId) {
         FeatureRequest request = featureRequestRepository.findById(id)
                 .orElseThrow(() -> new FeatureRequestNotFoundException("Feature request not found"));
@@ -135,13 +150,12 @@ public class FeatureRequestService {
         featureRequestRepository.delete(request);
     }
 
-    @Transactional
     public Long upvoteFeatureRequest(UUID featureRequestId, UUID userId) {
         FeatureRequest request = featureRequestRepository.findById(featureRequestId)
                 .orElseThrow(() -> new FeatureRequestNotFoundException("Feature request not found"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (voteRepository.existsByFeatureRequestIdAndUserId(featureRequestId, userId)) {
             throw new IllegalStateException("Already voted for this feature request");
@@ -155,10 +169,21 @@ public class FeatureRequestService {
 
         voteRepository.save(vote);
 
+        UUID creatorId = request.getUser().getId();
+        if (!creatorId.equals(userId)) {
+            notificationService.notifyUser(
+                    creatorId,
+                    NotificationType.STATUS_UPDATE,
+                    "Someone upvoted your request!",
+                    user.getFirstName() + " supports '" + request.getTitle() + "'",
+                    request.getId(),
+                    FEATURE_REQUEST
+            );
+        }
+
         return featureRequestRepository.countVotesByFeatureRequestId(featureRequestId);
     }
 
-    @Transactional
     public Long removeUpvote(UUID featureRequestId, UUID userId) {
         if (!voteRepository.existsByFeatureRequestIdAndUserId(featureRequestId, userId)) {
             throw new IllegalStateException("You haven't voted for this feature request");
@@ -174,16 +199,31 @@ public class FeatureRequestService {
         return voteRepository.existsByFeatureRequestIdAndUserId(featureRequestId, userId);
     }
 
-    @Transactional
     public FeatureRequestDTO updateStatus(UUID id, FeatureRequestStatusUpdateDTO dto) {
         FeatureRequest request = featureRequestRepository.findById(id)
                 .orElseThrow(() -> new FeatureRequestNotFoundException("Feature request not found"));
 
-        request.setStatus(dto.getStatus());
+        FeatureRequestStatus oldStatus = request.getStatus();
+        FeatureRequestStatus newStatus = dto.getStatus();
+
+        boolean adminResponseChanged =
+                (request.getAdminResponse() == null && dto.getAdminResponse() != null) ||
+                        (request.getAdminResponse() != null && dto.getAdminResponse() != null &&
+                                !request.getAdminResponse().equals(dto.getAdminResponse()));
+
+
+        request.setStatus(newStatus);
         request.setAdminResponse(dto.getAdminResponse());
         request.setUpdatedAt(LocalDateTime.now());
 
         FeatureRequest updated = featureRequestRepository.save(request);
+
+        triggerStatusChangeNotifications(request, oldStatus, newStatus);
+
+        if (adminResponseChanged) {
+            triggerAdminResponseNotification(request);
+        }
+
         Long voteCount = featureRequestRepository.countVotesByFeatureRequestId(id);
 
         log.info("Feature request {} status updated to {}", id, dto.getStatus());
@@ -223,4 +263,90 @@ public class FeatureRequestService {
                 .updatedAt(request.getUpdatedAt())
                 .build();
     }
+
+    private void triggerStatusChangeNotifications(
+            FeatureRequest request,
+            FeatureRequestStatus oldStatus,
+            FeatureRequestStatus newStatus) {
+
+        UUID creatorId = request.getUser().getId();
+        String title = request.getTitle();
+
+        switch (newStatus) {
+            case UNDER_REVIEW:
+                notificationService.notifyUser(
+                        creatorId,
+                        NotificationType.STATUS_UPDATE,
+                        "Your request is under review",
+                        "We're reviewing '" + title + "'",
+                        request.getId(),
+                        FEATURE_REQUEST
+                );
+                break;
+
+            case IN_PROGRESS:
+                notificationService.notifyUser(
+                        creatorId,
+                        NotificationType.STATUS_UPDATE,
+                        "Work has started!",
+                        "We're building '" + title + "'",
+                        request.getId(),
+                        FEATURE_REQUEST
+                );
+
+                notificationService.notifySubscribers(
+                        request.getId(),
+                        "Feature in progress",
+                        "A feature you voted for (" + title + ") is being built!"
+                );
+                break;
+
+            case COMPLETED:
+                notificationService.notifyUser(
+                        creatorId,
+                        NotificationType.STATUS_UPDATE,
+                        "Your feature is live!",
+                        "'" + title + "' is now available!",
+                        request.getId(),
+                        FEATURE_REQUEST
+                );
+
+                notificationService.notifySubscribers(
+                        request.getId(),
+                        "Feature completed!",
+                        "A feature you voted for (" + title + ") is now live!"
+                );
+
+                notificationService.notifyAllUsers(
+                        "New Feature Available!",
+                        "Check out: " + title
+                );
+                break;
+
+            case REJECTED:
+                notificationService.notifyUser(
+                        creatorId,
+                        NotificationType.STATUS_UPDATE,
+                        "Update on your request",
+                        "We've reviewed '" + title + "'. " + request.getAdminResponse(),
+                        request.getId(),
+                        FEATURE_REQUEST
+                );
+                break;
+        }
+    }
+
+    private void triggerAdminResponseNotification(FeatureRequest request) {
+        notificationService.notifyUser(
+                request.getUser().getId(),
+                NotificationType.ADMIN_RESPONSE,
+                "Admin responded to your request",
+                "Check the response on '" + request.getTitle() + "'",
+                request.getId(),
+                FEATURE_REQUEST
+        );
+
+        log.info("Admin response notification sent for feature request {}", request.getId());
+    }
+
 }

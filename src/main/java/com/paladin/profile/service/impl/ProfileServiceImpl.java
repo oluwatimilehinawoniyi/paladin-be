@@ -1,11 +1,11 @@
 package com.paladin.profile.service.impl;
 
 import com.paladin.common.dto.*;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
 import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.common.exceptions.CVNotFoundException;
-import com.paladin.common.exceptions.UserNotFoundException;
 import com.paladin.common.mappers.ProfileMapper;
 import com.paladin.profile.Profile;
 import com.paladin.profile.repository.ProfileRepository;
@@ -46,7 +46,7 @@ public class ProfileServiceImpl implements ProfileService {
             UUID userId
     ) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
 
         Profile newProfile = profileMapper.toEntity(request);
         newProfile.setCreatedAt(LocalDateTime.now());
@@ -73,7 +73,7 @@ public class ProfileServiceImpl implements ProfileService {
      */
     public List<ProfileSummaryDTO> getProfilesByUserId(UUID userId) {
         List<Profile> profiles = profileRepository.findByUserId(userId)
-                .orElseThrow(() -> new UserNotFoundException("Profile " +
+                .orElseThrow(() -> new NotFoundException("Profile " +
                         "not found"));
         return profiles.stream()
                 .map(profileMapper::toSummaryDTO)

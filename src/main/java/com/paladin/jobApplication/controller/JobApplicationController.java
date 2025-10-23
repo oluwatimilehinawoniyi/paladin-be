@@ -2,7 +2,7 @@ package com.paladin.jobApplication.controller;
 
 import com.paladin.common.dto.*;
 import com.paladin.common.enums.ApplicationStatus;
-import com.paladin.common.exceptions.UserNotFoundException;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.jobApplication.service.impl.AIJobAnalysisServiceImpl;
 import com.paladin.jobApplication.service.impl.JobApplicationServiceImpl;
 import com.paladin.common.response.ResponseHandler;
@@ -103,7 +103,7 @@ public class JobApplicationController {
 
             UserDTO user = userService.getUserByEmail(userEmail);
             if (user == null) {
-                throw new UserNotFoundException(
+                throw new NotFoundException(
                         "User not found for authenticated email: " + userEmail);
             }
             return user.getId();
@@ -112,7 +112,7 @@ public class JobApplicationController {
         String userEmail = principal.getName();
         UserDTO user = userService.getUserByEmail(userEmail);
         if (user == null) {
-            throw new UserNotFoundException(
+            throw new NotFoundException(
                     "User not found for authenticated principal: " + userEmail);
         }
         return user.getId();

@@ -1,7 +1,7 @@
 package com.paladin.profile.controller;
 
 import com.paladin.common.dto.*;
-import com.paladin.common.exceptions.UserNotFoundException;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.profile.service.impl.ProfileServiceImpl;
 import com.paladin.common.response.ResponseHandler;
 import com.paladin.user.service.UserService;
@@ -137,7 +137,7 @@ public class ProfileController {
 
             UserDTO user = userService.getUserByEmail(userEmail);
             if (user == null) {
-                throw new UserNotFoundException(
+                throw new NotFoundException(
                         "User not found for authenticated email: " + userEmail);
             }
             return user.getId();
@@ -146,7 +146,7 @@ public class ProfileController {
         String userEmail = principal.getName();
         UserDTO user = userService.getUserByEmail(userEmail);
         if (user == null) {
-            throw new UserNotFoundException(
+            throw new NotFoundException(
                     "User not found for authenticated principal: " + userEmail);
         }
         return user.getId();
