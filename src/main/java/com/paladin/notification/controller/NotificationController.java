@@ -123,7 +123,7 @@ public class NotificationController {
         return ResponseHandler.responseBuilder(
                 "All notifications marked as read",
                 HttpStatus.OK,
-                null
+                Map.of("message", "success")
         );
     }
 

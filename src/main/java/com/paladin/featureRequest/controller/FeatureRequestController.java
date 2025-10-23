@@ -5,6 +5,7 @@ import com.paladin.common.dto.FeatureRequestCreateDTO;
 import com.paladin.common.dto.FeatureRequestDTO;
 import com.paladin.common.dto.FeatureRequestUpdateDTO;
 import com.paladin.common.enums.FeatureRequestStatus;
+import com.paladin.common.response.ResponseHandler;
 import com.paladin.featureRequest.service.FeatureRequestService;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
@@ -46,7 +47,7 @@ public class FeatureRequestController {
 
     // Get all feature requests (with optional status filter)
     @GetMapping
-    public ResponseEntity<List<FeatureRequestDTO>> getAllFeatureRequests(
+    public ResponseEntity<Object> getAllFeatureRequests(
             @RequestParam(required = false) FeatureRequestStatus status,
             HttpServletRequest request) {
 
@@ -59,7 +60,11 @@ public class FeatureRequestController {
 
         UUID userId = user != null ? user.getId() : null;
         List<FeatureRequestDTO> requests = featureRequestService.getAllFeatureRequests(userId, status);
-        return ResponseEntity.ok(requests);
+        return ResponseHandler.responseBuilder(
+                "Feature requests retrieved successfully",
+                HttpStatus.OK,
+                requests
+        );
     }
 
     // Get single feature request by ID
@@ -82,12 +87,15 @@ public class FeatureRequestController {
 
     // Get current user's own feature requests
     @GetMapping("/my-requests")
-    public ResponseEntity<List<FeatureRequestDTO>> getMyFeatureRequests(
-            HttpServletRequest request) {
-
+    public ResponseEntity<Object> getMyFeatureRequests(HttpServletRequest request) {
         User user = getUserFromRequest(request);
         List<FeatureRequestDTO> requests = featureRequestService.getUserFeatureRequests(user.getId());
-        return ResponseEntity.ok(requests);
+
+        return ResponseHandler.responseBuilder(
+                "User requests retrieved successfully",
+                HttpStatus.OK,
+                requests
+        );
     }
 
     // Update own feature request (only if PENDING)

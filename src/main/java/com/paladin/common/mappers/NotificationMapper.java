@@ -11,6 +11,7 @@ import org.mapstruct.Named;
 public interface NotificationMapper {
 
     @Mapping(source = "user.id", target = "userId")
+    @Mapping(source = "read", target = "isRead")
     NotificationDTO toDTO(Notification notification);
 
     @Mapping(target = "id", ignore = true)

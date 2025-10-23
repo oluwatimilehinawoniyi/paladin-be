@@ -221,11 +221,14 @@ public class NotificationService {
         if (!notification.getUser().getId().equals(userId)) {
             throw new UnauthorizedAccessException("You can only mark your own notifications as read");
         }
-        notification.setRead(true);
-        notificationRepository.save(notification);
 
-        log.info("Notification {} marked as read by user {}", notificationId, userId);
-    }
+        log.info("Before marking as read: notification {} isRead = {}", notificationId, notification.isRead());
+
+        notification.setRead(true);
+        Notification saved = notificationRepository.save(notification);
+
+        log.info("After saving: notification {} isRead = {}", notificationId, saved.isRead());
+        log.info("Notification {} marked as read by user {}", notificationId, userId);    }
 
     /**
      * Mark all user's notifications as read
