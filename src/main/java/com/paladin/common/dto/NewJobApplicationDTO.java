@@ -1,10 +1,12 @@
 package com.paladin.common.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.util.UUID;
 
 @Data
+@Builder
 public class NewJobApplicationDTO {
     public String company;
     public String jobEmail;
