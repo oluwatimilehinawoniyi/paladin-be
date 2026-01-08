@@ -8,9 +8,11 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.gmail.model.Message;
 import com.paladin.auth.interfaces.EmailProvider;
+import com.paladin.common.enums.ApplicationStatus;
 import com.paladin.config.GoogleOAuthConfig;
 import com.paladin.common.dto.JobApplicationEmailRequest;
 import com.paladin.common.enums.AuthProvider;
+import com.paladin.jobApplication.repository.JobApplicationRepository;
 import com.paladin.user.User;
 import com.paladin.user.repository.UserRepository;
 import jakarta.mail.MessagingException;
@@ -21,6 +23,11 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.google.api.services.gmail.Gmail;
 
@@ -30,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.UUID;
 
 
 @Service
@@ -38,6 +46,7 @@ import java.util.Properties;
 public class GmailEmailProvider implements EmailProvider {
     private final GoogleOAuthConfig googleOAuthConfig;
     private final UserRepository userRepository;
+    private final JobApplicationRepository jobApplicationRepository;
 
     private static final String APPLICATION_NAME = "Paladin Job Application";
     private static final GsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -45,10 +54,23 @@ public class GmailEmailProvider implements EmailProvider {
 
 
     @Override
+    @Async
+    @CircuitBreaker(name = "gmailService", fallbackMethod = "fallbackSendEmail")
+    @Retryable(
+            retryFor = {IOException.class, MessagingException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(
+                    delay = 2000,
+                    multiplier = 2.0,
+                    maxDelay = 10000
+            )
+    )
     public void sendJobApplicationEmail(
             User user,
             JobApplicationEmailRequest request
     ) throws IOException, MessagingException {
+        log.info("Attempting to send email to {} (async with retry + circuit breaker)", request.getToEmail());
+
         Credential credential = createCredential(user);
         Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName("Paladin Job Application")
@@ -67,7 +89,81 @@ public class GmailEmailProvider implements EmailProvider {
         Message message = createMessageWithEmail(emailContent);
         service.users().messages().send(user.getEmail(), message).execute();
         log.info("Email sent successfully via Gmail API to {}", request.getToEmail());
+    }
 
+    /**
+     * Circuit breaker fallback - called when Gmail circuit is OPEN.
+     * Marks job application as FAILED_TO_SEND so user can see it in their dashboard.
+     */
+    public void fallbackSendEmail(
+            User user,
+            JobApplicationEmailRequest request,
+            Exception e
+    ) {
+        log.error("Circuit breaker OPEN for Gmail service. Fast-failing email to {}",
+                request.getToEmail());
+        log.error("Reason: {}", e.getMessage());
+
+        // PRODUCTION READY: Mark job application as failed
+        markJobApplicationAsFailed(user.getId(), request.getToEmail(),
+                "Gmail service temporarily unavailable (circuit breaker open)");
+
+        // TODO for future:
+        // 1. Queue email in DLQ for automatic retry when circuit closes
+        // 2. Send in-app notification to user
+    }
+
+    /**
+     * Retry recovery fallback - called when all retry attempts fail.
+     * Marks job application as FAILED_TO_SEND so user can retry manually.
+     */
+    @Recover
+    public void recoverFromEmailFailure(
+            IOException e,
+            User user,
+            JobApplicationEmailRequest request
+    ) {
+        log.error("✗ Failed to send email to {} after all retries. Error: {}",
+                request.getToEmail(),
+                e.getMessage());
+        log.error("User: {}, Job: {}, Error details: ",
+                user.getEmail(),
+                request.getSubject(),
+                e);
+
+        // PRODUCTION READY: Mark job application as failed
+        markJobApplicationAsFailed(user.getId(), request.getToEmail(),
+                "Failed after " + 3 + " retry attempts: " + e.getMessage());
+
+        // TODO for future:
+        // 1. Store failed email in persistent DLQ (database table or Redis)
+        // 2. Send email to user about delivery failure
+    }
+
+    /**
+     * Helper method to mark job application as FAILED_TO_SEND.
+     * Allows user to see failed applications in dashboard and retry manually.
+     */
+    private void markJobApplicationAsFailed(UUID userId, String jobEmail, String reason) {
+        try {
+            jobApplicationRepository.findTopByProfileUserIdAndJobEmailOrderBySentAtDesc(
+                    userId,
+                    jobEmail
+            ).ifPresentOrElse(
+                    jobApp -> {
+                        jobApp.setStatus(ApplicationStatus.FAILED_TO_SEND);
+                        jobApp.setSentAt(LocalDateTime.now());
+                        jobApplicationRepository.save(jobApp);
+                        log.info("Marked job application {} as FAILED_TO_SEND. User can retry from dashboard.",
+                                jobApp.getId());
+                    },
+                    () -> log.warn("Could not find job application for user {} and email {} to mark as failed",
+                            userId, jobEmail)
+            );
+        } catch (Exception ex) {
+            // Don't fail the whole request if we can't update status
+            log.error("Failed to update job application status: {}", ex.getMessage());
+        }
     }
 
     @Override

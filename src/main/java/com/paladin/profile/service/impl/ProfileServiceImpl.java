@@ -2,6 +2,7 @@ package com.paladin.profile.service.impl;
 
 import com.paladin.common.dto.*;
 import com.paladin.common.exceptions.NotFoundException;
+import com.paladin.common.exceptions.UnauthorizedAccessException;
 import com.paladin.cv.CV;
 import com.paladin.cv.repository.CVRepository;
 import com.paladin.cv.service.impl.CVServiceImpl;
@@ -88,11 +89,11 @@ public class ProfileServiceImpl implements ProfileService {
      */
     public ProfileResponseDTO getProfileById(UUID profileId, UUID userId) {
         Profile profile = profileRepository.findById(profileId)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new NotFoundException(
                         "Profile not found with ID: " + profileId));
 
         if (!profile.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new UnauthorizedAccessException(
                     "Unauthorized: This profile does not belong to you");
         }
         return profileMapper.toResponseDTO(profile);
@@ -112,10 +113,10 @@ public class ProfileServiceImpl implements ProfileService {
             ProfileUpdateRequestDTO request) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(
-                        () -> new RuntimeException("Profile not found"));
+                        () -> new NotFoundException("Profile not found"));
 
         if (!profile.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new UnauthorizedAccessException(
                     "Unauthorized: This profile does not belong to you");
         }
 
@@ -141,10 +142,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public void deleteProfile(UUID profileId, UUID userId) {
         Profile profile = profileRepository.findById(profileId)
-                .orElseThrow(() -> new RuntimeException("Profile not " +
+                .orElseThrow(() -> new NotFoundException("Profile not " +
                         "found"));
         if (!profile.getUser().getId().equals(userId)) {
-            throw new RuntimeException(
+            throw new UnauthorizedAccessException(
                     "Unauthorized: This profile does not belong to you");
         }
 

@@ -7,6 +7,7 @@ import com.paladin.cv.service.impl.CVServiceImpl;
 import com.paladin.common.enums.ApplicationStatus;
 import com.paladin.common.exceptions.CVNotFoundException;
 import com.paladin.common.exceptions.CannotSendMailException;
+import com.paladin.common.exceptions.NotFoundException;
 import com.paladin.common.exceptions.ProfileNotFoundException;
 import com.paladin.common.exceptions.UnauthorizedAccessException;
 import com.paladin.jobApplication.JobApplication;
@@ -57,7 +58,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         User user = profile.getUser();
 
         if (!emailProviderService.canUserSendEmails(user)) {
-            throw new RuntimeException(
+            throw new UnauthorizedAccessException(
                     "Email provider connection required. Please connect your email account " +
                             "to send job applications with CV attachments."
             );
@@ -110,10 +111,10 @@ public class JobApplicationServiceImpl implements JobApplicationService {
      */
     public JobApplicationDTO updateJobApplicationStatus(UUID applicationId, ApplicationStatus newStatus, UUID userId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Job application not found"));
+                .orElseThrow(() -> new NotFoundException("Job application not found"));
 
         if (!application.getProfile().getUser().getId().equals(userId)) {
-            throw new RuntimeException("Unauthorized: Application does not belong to user");
+            throw new UnauthorizedAccessException("Unauthorized: Application does not belong to user");
         }
 
         application.setStatus(newStatus);
