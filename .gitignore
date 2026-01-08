@@ -43,3 +43,7 @@ set-fly-secrets.sh
 
 # Docker volumes
 postgres-data/
+
+# docs
+ASYNC_RETRY_IMPLEMENTATION.md
+CIRCUIT_BREAKER_IMPLEMENTATION.md

@@ -22,6 +22,58 @@ A comprehensive backend system that streamlines job applications by leveraging A
 - **Scheduled token refresh** to maintain OAuth2 sessions
 - **RESTful API** design with comprehensive error handling
 
+### Resilience & Reliability Features
+
+Built with production-grade resilience patterns to handle external service failures gracefully:
+
+#### **Async Processing**
+- Non-blocking email sending with custom thread pool (5-10 threads)
+- Instant API responses while operations complete in background
+- Configurable queue capacity (50 tasks) for load management
+
+#### **Automatic Retry Logic**
+- **Gmail API**: 3 retries with exponential backoff (2s → 4s → 8s)
+- **Claude AI**: 3 retries with exponential backoff (1s → 2s → 4s)
+- Intelligent exception classification (retry transient failures only)
+
+#### **Circuit Breakers** (Resilience4j)
+- **Gmail Service Circuit**:
+  - Opens after 50% failure rate (10 call sliding window)
+  - 30s recovery wait period
+  - Automatic half-open testing (3 calls)
+- **Claude AI Service Circuit**:
+  - Opens after 60% failure rate (10 call sliding window)
+  - 60s recovery wait period (AI services need more time)
+  - Automatic half-open testing (2 calls)
+- Fast-fail when services are down (no wasted retries)
+- Automatic recovery detection
+
+#### **Production-Ready Fallbacks**
+- **Gmail Failures**: Updates job application status to `FAILED_TO_SEND`
+  - Users see failed applications in dashboard
+  - Manual retry available when service recovers
+  - No silent failures
+- **AI Failures**: Returns professional template cover letter
+  - Users can still submit applications
+  - Clear warning message about AI unavailability
+  - Customizable template response
+
+#### **Monitoring & Observability**
+- Circuit breaker health indicators via Spring Actuator
+- Real-time circuit state monitoring
+- Circuit breaker events tracking
+- Detailed metrics for failure rates and response times
+- Comprehensive logging
+
+#### **Status Tracking**
+Application statuses include:
+- `SENT` - Successfully delivered
+- `FAILED_TO_SEND` - Delivery failed (circuit open or retries exhausted)
+- `INTERVIEW` - Interview scheduled
+- `REJECTED` - Application rejected
+- `ACCEPTED` - Offer received
+- `FOLLOW_UP` - Awaiting response
+
 ## Prerequisites
 
 - Java 17 or higher
@@ -293,7 +345,93 @@ GET /api/v1/users/me
 ```http
 DELETE /api/v1/users/me
 ```
-⚠️ This permanently deletes all user data including profiles, CVs, and applications
+This permanently deletes all user data including profiles, CVs, and applications
+
+### Monitoring & Health Checks
+
+#### Check Application Health & Circuit Breaker Status
+```http
+GET /actuator/health
+```
+
+**Response:**
+```json
+{
+  "status": "UP",
+  "components": {
+    "circuitBreakers": {
+      "status": "UP",
+      "details": {
+        "gmailService": {
+          "status": "UP",
+          "state": "CLOSED",
+          "failureRate": "0.0%",
+          "slowCallRate": "0.0%",
+          "bufferedCalls": 10,
+          "failedCalls": 0
+        },
+        "claudeAIService": {
+          "status": "UP",
+          "state": "CLOSED",
+          "failureRate": "0.0%",
+          "slowCallRate": "0.0%",
+          "bufferedCalls": 10,
+          "failedCalls": 0
+        }
+      }
+    },
+    "db": {
+      "status": "UP"
+    }
+  }
+}
+```
+
+**Circuit Breaker States:**
+- `CLOSED` - Normal operation (service healthy) ✓
+- `OPEN` - Service failing, fast-failing requests ⊘
+- `HALF_OPEN` - Testing recovery after wait period
+- `FORCED_OPEN` - Manually disabled for maintenance
+
+#### View Circuit Breaker Events
+```http
+GET /actuator/circuitbreakerevents
+```
+
+Shows recent circuit breaker events including:
+- State transitions (CLOSED → OPEN → HALF_OPEN → CLOSED)
+- Success and failure events
+- Error details and timestamps
+
+**Example Response:**
+```json
+{
+  "circuitBreakerEvents": [
+    {
+      "circuitBreakerName": "gmailService",
+      "type": "SUCCESS",
+      "creationTime": "2024-01-08T10:30:15.123Z"
+    },
+    {
+      "circuitBreakerName": "claudeAIService",
+      "type": "ERROR",
+      "creationTime": "2024-01-08T10:31:20.456Z",
+      "errorMessage": "Claude AI API call failed"
+    }
+  ]
+}
+```
+
+#### View Detailed Metrics
+```http
+GET /actuator/metrics/resilience4j.circuitbreaker.calls
+```
+
+Provides detailed metrics for circuit breaker calls:
+- Total calls
+- Successful calls
+- Failed calls
+- Call duration percentiles
 
 ## Architecture
 
