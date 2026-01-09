@@ -3,6 +3,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
+    repair-on-migrate: true
     validate-on-migrate: true
     clean-disabled: false
     locations: classpath:db/migration

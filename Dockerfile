@@ -17,4 +17,4 @@ EXPOSE 8080
 
 COPY --from=build /app/target/*.jar app.jar
 
-CMD ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+CMD ["java", "-Dspring.profiles.active=prod", "-Dserver.address=0.0.0.0", "-Dserver.port=${PORT}", "-jar", "app.jar"]
